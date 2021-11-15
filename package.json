@@ -4,7 +4,14 @@
   "description": "Purescript graphic package",
   "main": "public/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "clean": "rm -r output .lock .cache",
+    "test": "npx spago test",
+    "build:spago": "npx spago build",
+    "deploy:spago": "npx spago bundle-app --main Main --to './public/index.js'",
+    "watch:spago": "npx spago build --watch",
+    "watch:webpack-server": "npx webpack-dev-server",
+    "watch": "npm run watch:webpack-server",
+    "deploy": "npm run deploy:spago"
   },
   "author": "yukikurage",
   "license": "ISC",
@@ -13,5 +20,8 @@
     "spago": "^0.20.3",
     "webpack": "^5.64.1",
     "webpack-cli": "^4.9.1"
+  },
+  "dependencies": {
+    "webpack-dev-server": "^4.5.0"
   }
 }
