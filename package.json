@@ -1,0 +1,17 @@
+{
+  "name": "glapple",
+  "version": "1.0.0",
+  "description": "Purescript graphic package",
+  "main": "public/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "yukikurage",
+  "license": "ISC",
+  "devDependencies": {
+    "purescript": "^0.14.5",
+    "spago": "^0.20.3",
+    "webpack": "^5.64.1",
+    "webpack-cli": "^4.9.1"
+  }
+}
