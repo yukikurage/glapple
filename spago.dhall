@@ -12,11 +12,14 @@ to generate this file without the comments in this block.
 -}
 { name = "my-project"
 , dependencies =
-  [ "console"
+  [ "canvas"
+  , "colors"
+  , "console"
   , "effect"
   , "ordered-collections"
   , "prelude"
   , "psci-support"
+  , "tuples"
   , "web-html"
   ]
 , packages = ./packages.dhall
