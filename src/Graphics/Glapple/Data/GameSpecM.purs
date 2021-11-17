@@ -1,3 +1,5 @@
+-- | runGameMでゲームを実行します．
+
 module Graphics.Glapple.Data.GameSpecM
   ( GameSpecM(..)
   , runGameM
