@@ -100,6 +100,13 @@ translate x y pic = Picture \ctx canvasImageSources -> do
   drawPicture ctx canvasImageSources pic
   restore ctx
 
+scale :: forall sprite. Number -> Number -> Picture sprite -> Picture sprite
+scale sx sy pic = Picture \ctx canvasImageSources -> do
+  save ctx
+  C.scale ctx { scaleX: sx, scaleY: sy }
+  drawPicture ctx canvasImageSources pic
+  restore ctx
+
 -- | 右回転
 rotate :: forall sprite. Number -> Picture sprite -> Picture sprite
 rotate r pic = Picture \ctx canvasImageSources -> do
