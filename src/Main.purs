@@ -14,7 +14,7 @@ import Graphic.Glapple.Data.Event (Event(..))
 import Graphic.Glapple.GlappleM (GlappleM, getGameState, getTotalTime, modifyGameState)
 import Graphics.Canvas (TextAlign(..), TextBaseline(..), getCanvasElementById)
 import Graphics.Glapple.Data.GameId (tell)
-import Graphics.Glapple.Data.GameSpecM (GameSpecM(..), runGame)
+import Graphics.Glapple.Data.GameSpecM (GameSpecM(..), runGameM)
 import Graphics.Glapple.Data.Picture (DrawStyle(..), FillStyle(..), Font(..), FontFamily(..), FontStyle(..), FontWeight(..), Picture, rotate, scale, sprite, text, translate)
 import Math (pi)
 
@@ -24,7 +24,7 @@ main = do
   case canvasMaybe of
     Nothing -> pure unit
     Just canvas -> do
-      gameId <- runGame gameSpec canvas \_ -> pure unit
+      gameId <- runGameM gameSpec canvas \_ -> pure unit
       runAff_ (const $ pure unit) do
         delay $ Milliseconds 10000.0
         liftEffect $ tell gameId unit

@@ -1,6 +1,6 @@
 module Graphics.Glapple.Data.GameSpecM
   ( GameSpecM(..)
-  , runGame
+  , runGameM
   , CanvasSpec
   ) where
 
@@ -61,14 +61,14 @@ tryLoadImageAff str = makeAff \thrower -> do
     Nothing -> thrower $ Left $ error $ "Image LoadingError: " <> str
   pure mempty
 
-runGame
+runGameM
   :: forall sprite gameState input output
    . Ord sprite
   => GameSpecM sprite gameState input output
   -> CanvasElement
   -> (output -> Effect Unit)
   -> Effect (GameId gameState input output)
-runGame
+runGameM
   ( GameSpecM
       { fps
       , canvasSpec: { height, width }
