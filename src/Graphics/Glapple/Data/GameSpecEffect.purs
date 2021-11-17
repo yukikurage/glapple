@@ -1,4 +1,8 @@
-module Graphics.Glapple.Data.GameSpecEffect (GameSpecEffect(..), runGame, CanvasSpec) where
+module Graphics.Glapple.Data.GameSpecEffect
+  ( GameSpecEffect(..)
+  , runGame
+  , CanvasSpec
+  ) where
 
 import Prelude
 
@@ -17,7 +21,15 @@ import Effect.Now (nowTime)
 import Effect.Ref (new, read, write)
 import Graphic.Glapple.Data.Event (Event(..), KeyState(..))
 import Graphic.Glapple.GlappleM (GlappleM, runGlappleM)
-import Graphics.Canvas (CanvasElement, CanvasImageSource, clearRect, getContext2D, setCanvasHeight, setCanvasWidth, tryLoadImage)
+import Graphics.Canvas
+  ( CanvasElement
+  , CanvasImageSource
+  , clearRect
+  , getContext2D
+  , setCanvasHeight
+  , setCanvasWidth
+  , tryLoadImage
+  )
 import Graphics.Glapple.Data.GameId (GameId(..))
 import Graphics.Glapple.Data.Picture (Picture, drawPicture)
 import Web.Event.Event (EventType(..))
