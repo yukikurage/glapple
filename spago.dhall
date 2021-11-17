@@ -12,15 +12,29 @@ to generate this file without the comments in this block.
 -}
 { name = "my-project"
 , dependencies =
-  [ "canvas"
+  [ "aff"
+  , "arrays"
+  , "canvas"
   , "colors"
   , "console"
+  , "datetime"
+  , "debug"
   , "effect"
+  , "either"
+  , "foldable-traversable"
+  , "integers"
+  , "maybe"
+  , "now"
   , "ordered-collections"
   , "prelude"
   , "psci-support"
+  , "refs"
+  , "tailrec"
+  , "transformers"
   , "tuples"
+  , "web-events"
   , "web-html"
+  , "web-uievents"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]
