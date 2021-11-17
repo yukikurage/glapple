@@ -5,13 +5,13 @@ import Prelude
 import Color (Color, cssStringRGBA)
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
-import Graphics.Canvas (CanvasGradient, CanvasImageSource, CanvasPattern, Composite(..), Context2D, TextAlign, TextBaseline, Transform, TranslateTransform, drawImage, setGlobalCompositeOperation, setGradientFillStyle, setPatternFillStyle, setTextAlign, setTextBaseline, setTransform)
+import Graphics.Canvas (CanvasGradient, CanvasImageSource, CanvasPattern, Composite(..), Context2D, TextAlign, TextBaseline, Transform, drawImage, restore, save, setGlobalCompositeOperation, setGradientFillStyle, setPatternFillStyle, setTextAlign, setTextBaseline)
 import Graphics.Canvas as C
 
 newtype Picture sprite = Picture (Context2D -> (sprite -> Maybe CanvasImageSource) -> Effect Unit)
 
 instance Semigroup (Picture sprite) where
-  append = sourceOverComposite
+  append = composite SourceOver
 
 instance Monoid (Picture sprite) where
   mempty = empty
@@ -22,7 +22,7 @@ drawPicture
   -> (sprite -> Maybe CanvasImageSource)
   -> Picture sprite
   -> Effect Unit
-drawPicture ctx canvasImagesSources (Picture f) = f ctx canvasImagesSources
+drawPicture ctx canvasImageSources (Picture f) = f ctx canvasImageSources
 
 data FillStyle = FillGradient CanvasGradient | FillPattern CanvasPattern | FillColor Color
 data DrawStyle = Fill FillStyle | Stroke Color
@@ -72,7 +72,15 @@ newtype Font = Font
 
 setFont :: Context2D -> Font -> Effect Unit
 setFont ctx (Font { fontStyle, fontWeight, fontSize, fontHeight, fontFamily }) = do
-  C.setFont ctx $ show fontStyle <> " " <> show fontWeight <> " " <> show fontSize <> "px/" <> show fontHeight <> "px " <> show fontFamily
+  C.setFont ctx $ show fontStyle
+    <> " "
+    <> show fontWeight
+    <> " "
+    <> show fontSize
+    <> "px/"
+    <> show fontHeight
+    <> "px "
+    <> show fontFamily
 
 ---------------
 -- Operation --
@@ -84,19 +92,32 @@ composite comp pic1 pic2 =
     setGlobalCompositeOperation ctx comp
     drawPicture ctx canvasImageSources pic1
     drawPicture ctx canvasImageSources pic2
-    setGlobalCompositeOperation ctx SourceOver
 
-sourceOverComposite :: forall sprite. Picture sprite -> Picture sprite -> Picture sprite
-sourceOverComposite = composite SourceOver
-
-resetTransForm :: Context2D -> Effect Unit
-resetTransForm ctx = setTransform ctx { m11: 1.0, m12: 0.0, m21: 0.0, m22: 1.0, m31: 0.0, m32: 0.0 }
-
-translate :: forall sprite. TranslateTransform -> Picture sprite -> Picture sprite
-translate trans pic = Picture \ctx canvasImageSources -> do
-  C.translate ctx trans
+translate :: forall sprite. Number -> Number -> Picture sprite -> Picture sprite
+translate x y pic = Picture \ctx canvasImageSources -> do
+  save ctx
+  C.translate ctx { translateX: x, translateY: y }
   drawPicture ctx canvasImageSources pic
-  resetTransForm ctx
+  restore ctx
+
+-- | 右回転
+rotate :: forall sprite. Number -> Picture sprite -> Picture sprite
+rotate r pic = Picture \ctx canvasImageSources -> do
+  save ctx
+  C.rotate ctx r
+  drawPicture ctx canvasImageSources pic
+  restore ctx
+
+transform
+  :: forall sprite
+   . Transform
+  -> Picture sprite
+  -> Picture sprite
+transform trans pic = Picture \ctx canvasImageSources -> do
+  save ctx
+  C.transform ctx trans
+  drawPicture ctx canvasImageSources pic
+  restore ctx
 
 --------------
 -- Pictures --
@@ -110,8 +131,8 @@ sprite spr = Picture \ctx canvasImageSources -> case canvasImageSources spr of
   Nothing -> pure unit
   Just x -> drawImage ctx x 0.0 0.0
 
-fillText :: forall sprite. DrawStyle -> TextAlign -> TextBaseline -> Font -> String -> Picture sprite
-fillText style align baseline font str = Picture \ctx _ -> do
+text :: forall sprite. DrawStyle -> TextAlign -> TextBaseline -> Font -> String -> Picture sprite
+text style align baseline font str = Picture \ctx _ -> do
   setTextAlign ctx align
   setTextBaseline ctx baseline
   setFont ctx font
