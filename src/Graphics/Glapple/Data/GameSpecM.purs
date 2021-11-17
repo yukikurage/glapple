@@ -1,5 +1,5 @@
-module Graphics.Glapple.Data.GameSpecEffect
-  ( GameSpecEffect(..)
+module Graphics.Glapple.Data.GameSpecM
+  ( GameSpecM(..)
   , runGame
   , CanvasSpec
   ) where
@@ -44,7 +44,7 @@ type CanvasSpec =
   , width :: Number
   }
 
-newtype GameSpecEffect sprite gameState input output = GameSpecEffect
+newtype GameSpecM sprite gameState input output = GameSpecM
   { fps :: Int
   , canvasSpec :: CanvasSpec
   , sprites :: Array (sprite /\ String)
@@ -64,12 +64,12 @@ tryLoadImageAff str = makeAff \thrower -> do
 runGame
   :: forall sprite gameState input output
    . Ord sprite
-  => GameSpecEffect sprite gameState input output
+  => GameSpecM sprite gameState input output
   -> CanvasElement
   -> (output -> Effect Unit)
   -> Effect (GameId gameState input output)
 runGame
-  ( GameSpecEffect
+  ( GameSpecM
       { fps
       , canvasSpec: { height, width }
       , sprites

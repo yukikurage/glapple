@@ -14,7 +14,7 @@ import Graphic.Glapple.Data.Event (Event(..))
 import Graphic.Glapple.GlappleM (GlappleM, getGameState, getTotalTime, modifyGameState)
 import Graphics.Canvas (TextAlign(..), TextBaseline(..), getCanvasElementById)
 import Graphics.Glapple.Data.GameId (tell)
-import Graphics.Glapple.Data.GameSpecEffect (GameSpecEffect(..), runGame)
+import Graphics.Glapple.Data.GameSpecM (GameSpecM(..), runGame)
 import Graphics.Glapple.Data.Picture (DrawStyle(..), FillStyle(..), Font(..), FontFamily(..), FontStyle(..), FontWeight(..), Picture, rotate, scale, sprite, text, translate)
 import Math (pi)
 
@@ -95,8 +95,8 @@ fontStandard = Font
   , fontStyle: FontStyleNormal
   }
 
-gameSpec :: GameSpecEffect Sprite GameState Input Output
-gameSpec = GameSpecEffect
+gameSpec :: GameSpecM Sprite GameState Input Output
+gameSpec = GameSpecM
   { canvasSpec:
       { width: 320.0
       , height: 320.0
