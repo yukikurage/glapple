@@ -35,7 +35,7 @@ getTotalTime = do
   initTimeMaybe <- liftEffect $ read initTimeRef
   nowT <- liftEffect $ nowTime
   case initTimeMaybe of
-    Just initTime -> pure $ Just $ diff initTime nowT
+    Just initTime -> pure $ Just $ diff nowT initTime
     Nothing -> pure Nothing
 
 raise :: forall output. output -> GlappleM output Unit
