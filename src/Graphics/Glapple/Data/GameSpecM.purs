@@ -2,6 +2,7 @@ module Graphics.Glapple.Data.GameSpecM
   ( GameSpecM(..)
   , runGameM
   , CanvasSpec
+  , runGameM_
   ) where
 
 import Prelude
@@ -21,15 +22,7 @@ import Effect.Now (nowTime)
 import Effect.Ref (new, read, write)
 import Graphic.Glapple.Data.Event (Event(..), KeyState(..))
 import Graphic.Glapple.GlappleM (GlappleM, runGlappleM)
-import Graphics.Canvas
-  ( CanvasElement
-  , CanvasImageSource
-  , clearRect
-  , getContext2D
-  , setCanvasHeight
-  , setCanvasWidth
-  , tryLoadImage
-  )
+import Graphics.Canvas (CanvasElement, CanvasImageSource, clearRect, getContext2D, setCanvasHeight, setCanvasWidth, tryLoadImage)
 import Graphics.Glapple.Data.GameId (GameId(..))
 import Graphics.Glapple.Data.Picture (Picture, drawPicture)
 import Web.Event.Event (EventType(..))
@@ -60,6 +53,14 @@ tryLoadImageAff str = makeAff \thrower -> do
     Just x -> thrower $ Right x
     Nothing -> thrower $ Left $ error $ "Image LoadingError: " <> str
   pure mempty
+
+runGameM_
+  :: forall sprite gameState input output
+   . Ord sprite
+  => GameSpecM sprite gameState input output
+  -> CanvasElement
+  -> Effect (GameId gameState input output)
+runGameM_ gameSpecM canvasElement = runGameM gameSpecM canvasElement \_ -> pure unit
 
 runGameM
   :: forall sprite gameState input output

@@ -12,7 +12,7 @@ import Graphic.Glapple.Data.Event (Event)
 import Graphic.Glapple.GlappleM (GlappleM, getGameState, getTotalTime, putGameState)
 import Graphics.Canvas (CanvasElement)
 import Graphics.Glapple.Data.GameId (GameId)
-import Graphics.Glapple.Data.GameSpecM (CanvasSpec, GameSpecM(..), runGameM)
+import Graphics.Glapple.Data.GameSpecM (CanvasSpec, GameSpecM(..), runGameM_)
 import Graphics.Glapple.Data.Picture (Picture)
 
 newtype GameSpec sprite gameState input = GameSpec
@@ -30,7 +30,7 @@ runGame
   => GameSpec sprite gameState input
   -> CanvasElement
   -> Effect (GameId gameState input output)
-runGame gameSpec canvasElement = runGameM (mkGameSpecM gameSpec) canvasElement (\_ -> pure unit)
+runGame gameSpec = runGameM_ (mkGameSpecM gameSpec)
 
 mkGameSpecM
   :: forall gameState sprite input output
