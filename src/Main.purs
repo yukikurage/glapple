@@ -14,7 +14,7 @@ import Graphic.Glapple.Data.Event (Event(..))
 import Graphic.Glapple.GlappleM (GlappleM, getGameState, getTotalTime, modifyGameState)
 import Graphics.Canvas (TextAlign(..), TextBaseline(..), getCanvasElementById)
 import Graphics.Glapple.Data.GameId (tell)
-import Graphics.Glapple.Data.GameSpecM (GameSpecM(..), runGameM)
+import Graphics.Glapple.Data.GameSpecM (GameSpecM(..), runGameM_)
 import Graphics.Glapple.Data.Picture (DrawStyle(..), FillStyle(..), Font(..), FontFamily(..), FontStyle(..), FontWeight(..), Picture, rotate, scale, sprite, text, translate)
 import Math (pi)
 
@@ -24,9 +24,9 @@ main = do
   case canvasMaybe of
     Nothing -> pure unit
     Just canvas -> do
-      gameId <- runGameM gameSpec canvas \_ -> pure unit
+      gameId <- runGameM_ gameSpec canvas
       runAff_ (const $ pure unit) do
-        delay $ Milliseconds 10000.0
+        delay $ Milliseconds 3000.0
         liftEffect $ tell gameId unit
 
 -- テスト用のゲーム
@@ -62,7 +62,7 @@ rotatingApple = do
       Just (Milliseconds x) -> x
       Nothing -> 0.0
     revolution =
-      if rotating then rotate (2.0 * pi * time / 1000.0)
+      if rotating then rotate (2.0 * pi * time / 400.0)
       else identity
   pure $ sprite Apple
     # translate (-16.0) (-16.0)
@@ -101,7 +101,7 @@ gameSpec = GameSpecM
       { width: 320.0
       , height: 320.0
       }
-  , fps: 20
+  , fps: 60
   , handler
   , initGameState
   , render
