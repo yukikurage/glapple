@@ -10,7 +10,6 @@ module Graphics.Glapple.Data.GameSpecM
 import Prelude
 
 import Control.Monad.Rec.Class (forever)
-import Data.Either (Either(..))
 import Data.Int (toNumber)
 import Data.Map (fromFoldable, lookup)
 import Data.Maybe (Maybe(..))
@@ -18,15 +17,15 @@ import Data.Time (diff)
 import Data.Traversable (for)
 import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
-import Effect.Aff (Aff, Milliseconds(..), delay, error, launchAff_, makeAff)
+import Effect.Aff (Aff, Milliseconds(..), delay, launchAff_)
 import Effect.Class (liftEffect)
 import Effect.Now (nowTime)
 import Effect.Ref (new, read, write)
 import Graphic.Glapple.Data.Event (Event(..), KeyState(..))
 import Graphic.Glapple.GlappleM (GlappleM, runGlappleM)
-import Graphics.Canvas (CanvasElement, CanvasImageSource, clearRect, getContext2D, setCanvasHeight, setCanvasWidth, tryLoadImage)
+import Graphics.Canvas (CanvasElement, clearRect, getContext2D, setCanvasHeight, setCanvasWidth)
 import Graphics.Glapple.Data.GameId (GameId(..))
-import Graphics.Glapple.Data.Picture (Picture, drawPicture)
+import Graphics.Glapple.Data.Picture (Picture, drawPicture, tryLoadImageAff)
 import Web.Event.Event (EventType(..))
 import Web.Event.EventTarget (addEventListener, eventListener)
 import Web.HTML (window)
@@ -47,14 +46,6 @@ newtype GameSpecM sprite gameState input output = GameSpecM
   , render :: GlappleM gameState output (Picture sprite)
   , handler :: Event input -> GlappleM gameState output Unit
   }
-
--- | 画像の読み込み
-tryLoadImageAff :: String -> Aff CanvasImageSource
-tryLoadImageAff str = makeAff \thrower -> do
-  tryLoadImage str $ case _ of
-    Just x -> thrower $ Right x
-    Nothing -> thrower $ Left $ error $ "Image LoadingError: " <> str
-  pure mempty
 
 runGameM_
   :: forall sprite gameState input output
@@ -127,12 +118,11 @@ runGameM
 
   mainProc ctx internal deltaTimeRef canvasImageSources = do
     procStart <- liftEffect nowTime
+
+    picture <- liftEffect $  runGlappleM render internal
+    liftEffect $ clearRect ctx { x: 0.0, y: 0.0, height, width }
+    drawPicture ctx (\s -> lookup s canvasImageSources) picture
     liftEffect do
-      picture <- runGlappleM render internal
-
-      clearRect ctx { x: 0.0, y: 0.0, height, width }
-      drawPicture ctx (\s -> lookup s canvasImageSources) picture
-
       nowT <- nowTime
       prevT <- read deltaTimeRef
       let

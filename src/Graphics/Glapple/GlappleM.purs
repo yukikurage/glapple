@@ -49,7 +49,10 @@ putGameState x = do
   { gameStateRef } <- ask
   liftEffect $ write x gameStateRef
 
-modifyGameState :: forall gameState output. (gameState -> gameState) -> GlappleM gameState output Unit
+modifyGameState
+  :: forall gameState output
+   . (gameState -> gameState)
+  -> GlappleM gameState output Unit
 modifyGameState f = do
   { gameStateRef } <- ask
   liftEffect $ modify_ f gameStateRef
