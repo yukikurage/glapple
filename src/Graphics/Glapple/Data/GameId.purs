@@ -23,9 +23,9 @@ tell
   -> Effect Unit
 tell (GameId { inputEmitter }) input = fire inputEmitter input
 
--- | GameIdで表されるゲームの現在の状態を描画
-renderGameId
+-- | GameIdで表されるゲームの状態を描画
+renderGame
   :: forall sprite input
    . GameId input
   -> Picture sprite
-renderGameId (GameId { renderEmitter }) = Picture \_ _ -> fire renderEmitter unit
+renderGame (GameId { renderEmitter }) = Picture \_ _ -> fire renderEmitter unit

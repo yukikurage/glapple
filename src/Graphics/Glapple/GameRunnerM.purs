@@ -1,5 +1,5 @@
 -- | runGameMでゲームを実行します．
-module Graphics.Glapple.GameRunnerM where
+module Graphics.Glapple.GameRunnerM (runGameM, runGameM_, runChildGameM, runChildGameM_) where
 
 import Prelude
 
@@ -220,11 +220,11 @@ runGameM
       liftEffect $ drawImage context2D (canvasElementToImageSource offCanvas) 0.0 0.0
 
       liftEffect do
-        nowT <- nowTime
+        now <- nowTime
         prevT <- read deltaTimeRef
         let
-          d = diff nowT prevT
-        write nowT deltaTimeRef
+          d = diff now prevT
+        write now deltaTimeRef
         fire eventEmitter (Update d)
       procEnd <- liftEffect nowTime
       let

@@ -1,4 +1,4 @@
-module Graphic.Glapple.Data.Event where
+module Graphics.Glapple.Data.Event where
 
 import Prelude
 
