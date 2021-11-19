@@ -3,29 +3,41 @@ module Graphics.Glapple.Data.GameId where
 
 import Prelude
 
+import Data.Maybe (Maybe)
 import Effect (Effect)
 import Effect.Aff (Aff)
+import Effect.Class (class MonadEffect)
+import Graphics.Canvas (CanvasImageSource, Context2D)
 import Graphics.Glapple.Data.Emitter (EmitterId, fire)
+import Graphics.Glapple.Data.InternalRegistrationIds (InternalRegistrationIds, unregisterGame)
 import Graphics.Glapple.Data.Picture (Picture(..))
 
-data GameId input =
+data GameId s i o =
   GameId
-    { inputEmitter :: EmitterId Effect input --Input EmitterはInputを取る必要がある
-    , renderEmitter :: EmitterId Aff Unit --Render EmitterもgameStateを取る必要があるのでは？
-    -- ない: gameStateは中で与えられる？から
+    { inputEmitter :: EmitterId Effect i --Input EmitterはInputを取る必要がある
+    , renderEmitter ::
+        EmitterId Aff
+          { canvasImageSources :: s -> Maybe CanvasImageSource
+          , context2D :: Context2D
+          } --Render EmitterもgameStateを取る必要があるのでは？
+    , internalRegistrationIds :: InternalRegistrationIds s i o
     }
 
 -- | GameIdで表されるゲームにInputを発火させます
 tell
-  :: forall input
-   . GameId input
-  -> input
+  :: forall s i o
+   . GameId s i o
+  -> i
   -> Effect Unit
 tell (GameId { inputEmitter }) input = fire inputEmitter input
 
 -- | GameIdで表されるゲームの状態を描画
 renderGame
-  :: forall sprite input
-   . GameId input
-  -> Picture sprite
-renderGame (GameId { renderEmitter }) = Picture \_ _ -> fire renderEmitter unit
+  :: forall s i o
+   . GameId s i o
+  -> Picture s
+renderGame (GameId { renderEmitter }) = Picture \context2D canvasImageSources ->
+  fire renderEmitter { context2D, canvasImageSources }
+
+destroy :: forall m s i o. MonadEffect m => GameId s i o -> m Unit
+destroy (GameId { internalRegistrationIds }) = unregisterGame internalRegistrationIds

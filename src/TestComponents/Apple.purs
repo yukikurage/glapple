@@ -2,7 +2,6 @@ module TestComponents.Apple where
 
 import Prelude
 
-import Data.Maybe (Maybe(..))
 import Data.Time.Duration (Milliseconds(..))
 import Graphics.Glapple (Event(..), GameSpecM(..), KeyState(..), getGameState, getTotalTime, mkHandlerM, mkInitGameStateM)
 import Graphics.Glapple.Data.Picture (rotate, scale, sprite, translate)
@@ -28,15 +27,10 @@ gameSpec = GameSpecM
   inputHandler = mkHandlerM case _ of
     StartRotate -> \_ -> { rotating: true }
   render = do
-    timeMaybe <- getTotalTime
-    maybeState <- getGameState
+    Milliseconds time <- getTotalTime
+    { rotating } <- getGameState
     let
-      time = case timeMaybe of
-        Just (Milliseconds x) -> x
-        Nothing -> 0.0
-      revolution = case maybeState of
-        Just { rotating: true } -> rotate (2.0 * pi * time / 400.0)
-        _ -> identity
+      revolution = if rotating then rotate (2.0 * pi * time / 400.0) else identity
     pure $ sprite Apple
       # translate (-16.0) (-16.0)
       # scale 5.0 5.0

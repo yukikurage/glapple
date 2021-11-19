@@ -8,9 +8,9 @@ module Graphics.Glapple
   , module Event
   ) where
 
-import Graphic.Glapple.GlappleM (getGameState, modifyGameState, putGameState, getTotalTime, raise) as GlappleM
+import Graphic.Glapple.GlappleM (getGameState, modifyGameState, putGameState, getTotalTime, raise, destroyMe) as GlappleM
 import Graphics.Glapple.Data.Event (Event(..), KeyState(..)) as Event
-import Graphics.Glapple.Data.GameId (GameId(..), renderGame, tell) as GameId
+import Graphics.Glapple.Data.GameId (GameId(..), renderGame, tell, destroy) as GameId
 import Graphics.Glapple.Data.GameSpec (GameSpec(..), mkInitGameStateM, mkRenderM, mkHandlerM, mkGameSpecM) as GameSpec
 import Graphics.Glapple.Data.GameSpecM (GameSpecM(..), CanvasSpec, defaultRender, defaultHandler) as GameSpecM
 import Graphics.Glapple.GameRunner (runGame, runChildGame) as GameRunner

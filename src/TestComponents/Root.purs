@@ -5,35 +5,75 @@ import Prelude
 
 import Color (rgb', rgba')
 import Data.Int (floor)
-import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Time.Duration (Milliseconds(..))
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
 import Effect.Class (liftEffect)
-import Graphic.Glapple.GlappleM (GlappleM, getGameState)
+import Graphic.Glapple.GlappleM (getGameState, modifyGameState)
 import Graphics.Canvas (PatternRepeat(..), TextAlign(..), TextBaseline(..))
-import Graphics.Glapple (Event(..), GameId, GameSpecM(..), mkHandlerM, renderGame, runChildGameM_, tell)
-import Graphics.Glapple.Data.Picture (DrawStyle(..), Font(..), FontFamily(..), FontStyle(..), FontWeight(..), Picture, Shape(..), arc, color, draw, empty, fan, font, lineWidth, polygon, rect, rotate, text, textAlign, textBaseLine, translate, (<-*), (<-+), (<-.), (<-^))
+import Graphics.Glapple (Event(..), GameId, GameSpecM(..), KeyState(..), destroy, renderGame, runChildGameM_, tell)
+import Graphics.Glapple.Data.Picture (DrawStyle(..), Font(..), FontFamily(..), FontStyle(..), FontWeight(..), Picture, Shape(..), arc, color, draw, fan, font, lineWidth, polygon, rect, rotate, text, textAlign, textBaseLine, translate, (<-*), (<-+), (<-.), (<-^))
 import TestComponents.Apple as Apple
+import TestComponents.DestroyTest as DestroyTest
 import TestComponents.Sprites (Sprite(..))
 
 -- テスト用のゲーム
-type GameState = { fps :: Number, rotating :: Boolean, apple :: GameId Apple.Input }
+type GameState =
+  { fps :: Number
+  , rotating :: Boolean
+  , apple :: GameId Sprite Apple.Input Unit
+  , destroyTest :: GameId Sprite Unit Unit
+  }
 
 type Input = Unit
 type Output = Unit
 
-eventHandler :: forall s o. Event -> GlappleM s GameState o Unit
-eventHandler = mkHandlerM f
+gameSpec :: GameSpecM Sprite GameState Input Output
+gameSpec = GameSpecM
+  { eventHandler
+  , inputHandler
+  , initGameState
+  , render
+  }
   where
-  f e gameState = case e of
-    Update (Milliseconds t) -> gameState { fps = 1000.0 / t }
-    _ -> gameState
+  inputHandler _ = do
+    { apple } <- getGameState
+    liftEffect $ tell apple Apple.StartRotate
 
-initGameState :: forall g o. GlappleM Sprite g o GameState
-initGameState = do
-  apple <- runChildGameM_ Apple.gameSpec
-  pure { fps: 0.0, rotating: false, apple }
+  eventHandler = case _ of
+    Update (Milliseconds t) -> modifyGameState $ _ { fps = 1000.0 / t }
+    KeyEvent "s" KeyDown -> do
+      { destroyTest } <- getGameState
+      destroy destroyTest
+    _ -> pure unit
+
+  initGameState = do
+    apple <- runChildGameM_ Apple.gameSpec
+    destroyTest <- runChildGameM_ DestroyTest.gameSpec
+    pure { fps: 0.0, rotating: false, apple, destroyTest }
+
+  render = do
+    { apple, destroyTest, fps } <- getGameState
+    let
+      fpsText = text Stroke (show $ floor fps)
+        # textAlign AlignRight
+        # textBaseLine BaselineHanging
+        # font fontStandard
+        # translate 320.0 5.0
+        # color (rgba' 0.0 0.0 0.0 0.5)
+        # lineWidth 1.0
+
+    pure $
+      fpsText
+        <-+ translate 160.0 160.0 (renderGame apple)
+        <-^ testPolygon
+        <-. testPolygon2
+        <-^ testPolygon3
+        <-^ testPolygon4
+        <-* testRect
+        <-+ testArc
+        <-+ testFan
+        <-^ renderGame destroyTest
 
 testPolygon :: forall sprite. Picture sprite
 testPolygon = polygon Fill polyData
@@ -96,34 +136,6 @@ testFan =
     # draw (Pattern { sprite: Apple, repeat: Repeat })
     # lineWidth 20.0
 
-render :: forall o. GlappleM Sprite GameState o (Picture Sprite)
-render = do
-  fpsM <- map (_.fps) <$> getGameState
-  appleMaybe <- map (_.apple) <$> getGameState
-  let
-    fps = fromMaybe 0.0 fpsM
-    fpsText = text Stroke (show $ floor fps)
-      # textAlign AlignRight
-      # textBaseLine BaselineHanging
-      # font fontStandard
-      # translate 320.0 5.0
-      # color (rgba' 0.0 0.0 0.0 0.5)
-      # lineWidth 1.0
-    apple = case appleMaybe of
-      Just x -> renderGame x
-      Nothing -> empty
-
-  pure $
-    fpsText
-      <-+ translate 160.0 160.0 apple
-      <-^ testPolygon
-      <-. testPolygon2
-      <-^ testPolygon3
-      <-^ testPolygon4
-      <-* testRect
-      <-+ testArc
-      <-+ testFan
-
 fontStandard :: Font
 fontStandard = Font
   { fontFamily: Monospace
@@ -132,17 +144,3 @@ fontStandard = Font
   , fontWeight: Bold
   , fontStyle: FontStyleNormal
   }
-
-gameSpec :: GameSpecM Sprite GameState Input Output
-gameSpec = GameSpecM
-  { eventHandler
-  , inputHandler
-  , initGameState
-  , render
-  }
-  where
-  inputHandler _ = do
-    appleMaybe <- map (_.apple) <$> getGameState
-    case appleMaybe of
-      Just x -> liftEffect $ tell x Apple.StartRotate
-      Nothing -> pure unit

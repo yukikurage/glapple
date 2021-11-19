@@ -18,10 +18,10 @@ type CanvasSpec =
   }
 
 newtype GameSpecM s g i o = GameSpecM
-  { initGameState :: GlappleM s g o g
-  , render :: GlappleM s g o (Picture s)
-  , inputHandler :: i -> GlappleM s g o Unit
-  , eventHandler :: Event -> GlappleM s g o Unit
+  { initGameState :: GlappleM s g i o g
+  , render :: GlappleM s g i o (Picture s)
+  , inputHandler :: i -> GlappleM s g i o Unit
+  , eventHandler :: Event -> GlappleM s g i o Unit
   }
 
 defaultRender :: forall m s. Applicative m => m (Picture s)
