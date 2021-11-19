@@ -4,10 +4,7 @@ import Prelude
 
 import Data.Maybe (Maybe(..))
 import Data.Time.Duration (Milliseconds(..))
-import Graphic.Glapple.Data.Event (Event(..), KeyState(..))
-import Graphic.Glapple.GlappleM (getGameState, getTotalTime)
-import Graphics.Glapple.Data.GameSpec (mkHandlerM, mkInitGameStateM)
-import Graphics.Glapple.Data.GameSpecM (GameSpecM(..))
+import Graphics.Glapple (Event(..), GameSpecM(..), KeyState(..), getGameState, getTotalTime, mkHandlerM, mkInitGameStateM)
 import Graphics.Glapple.Data.Picture (image, rotate, scale, translate)
 import Math (pi)
 import TestComponents.Sprites (Sprite)

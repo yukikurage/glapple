@@ -40,7 +40,7 @@ register (EmitterId emitterRef) handler = do
   emitter <- liftEffect $ read emitterRef
   let
     newKey = case findMax emitter of
-      Just { key } -> key
+      Just { key } -> key + 1
       Nothing -> 0
     newE = insert newKey handler emitter
   liftEffect $ write newE emitterRef

@@ -8,7 +8,7 @@ module Graphics.Glapple.Data.GameSpecM
 
 import Prelude
 
-import Graphic.Glapple.Data.Event (Event)
+import Graphics.Glapple.Data.Event (Event)
 import Graphic.Glapple.GlappleM (GlappleM)
 import Graphics.Glapple.Data.Picture (Picture, empty)
 

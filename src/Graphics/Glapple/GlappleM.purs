@@ -11,7 +11,7 @@ import Effect (Effect)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Now (nowTime)
 import Effect.Ref (Ref, modify_, read, write)
-import Graphic.Glapple.Data.Event (Event)
+import Graphics.Glapple.Data.Event (Event)
 import Graphics.Canvas (CanvasImageSource, Context2D)
 import Graphics.Glapple.Data.Emitter (EmitterId, fire)
 

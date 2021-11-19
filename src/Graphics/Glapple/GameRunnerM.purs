@@ -16,7 +16,7 @@ import Effect.Aff (Aff, Milliseconds(..), delay, launchAff_)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Now (nowTime)
 import Effect.Ref (new, read, write)
-import Graphic.Glapple.Data.Event (Event(..), KeyState(..))
+import Graphics.Glapple.Data.Event (Event(..), KeyState(..))
 import Graphic.Glapple.GlappleM (GlappleM, InternalState, runGlappleM)
 import Graphics.Canvas (CanvasElement, CanvasImageSource, canvasElementToImageSource, clearRect, drawImage, getContext2D, setCanvasHeight, setCanvasWidth)
 import Graphics.Glapple.Data.Emitter (RegistrationId, fire, newEmitter, register)
@@ -57,7 +57,7 @@ makeRenderHandler render = do
 makeHandlerEffect :: forall s g o a. (a -> GlappleM s g o Unit) -> GlappleM s g o (a -> Effect Unit)
 makeHandlerEffect eventHandler = do
   internalState <- ask
-  pure \e -> do --ここ以下がレンダリング毎に実行される
+  pure \e -> do --ここ以下がイベント発火ごとに実行される
     runGlappleM (eventHandler e) internalState
 
 -- | "子の"GlappleM内でGameIdを作成

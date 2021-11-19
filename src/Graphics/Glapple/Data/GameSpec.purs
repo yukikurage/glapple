@@ -6,7 +6,7 @@ import Prelude
 
 import Data.Maybe (Maybe(..))
 import Data.Time.Duration (Milliseconds)
-import Graphic.Glapple.Data.Event (Event)
+import Graphics.Glapple.Data.Event (Event)
 import Graphic.Glapple.GlappleM (GlappleM, getGameState, getTotalTime, putGameState)
 import Graphics.Glapple.Data.GameSpecM (GameSpecM(..))
 import Graphics.Glapple.Data.Picture (Picture, empty)

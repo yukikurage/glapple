@@ -10,14 +10,10 @@ import Data.Time.Duration (Milliseconds(..))
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
 import Effect.Class (liftEffect)
-import Graphic.Glapple.Data.Event (Event(..))
 import Graphic.Glapple.GlappleM (GlappleM, getGameState)
 import Graphics.Canvas (PatternRepeat(..), TextAlign(..), TextBaseline(..))
-import Graphics.Glapple.Data.GameId (GameId, renderGameId, tell)
-import Graphics.Glapple.Data.GameSpec (mkHandlerM)
-import Graphics.Glapple.Data.GameSpecM (GameSpecM(..))
+import Graphics.Glapple (Event(..), GameId, GameSpecM(..), mkHandlerM, renderGame, runChildGameM_, tell)
 import Graphics.Glapple.Data.Picture (DrawStyle(..), Font(..), FontFamily(..), FontStyle(..), FontWeight(..), Picture, Shape(..), arc, color, draw, empty, fan, font, lineWidth, polygon, rect, rotate, text, textAlign, textBaseLine, translate, (<-*), (<-+), (<-.), (<-^))
-import Graphics.Glapple.GameRunnerM (runChildGameM_)
 import TestComponents.Apple as Apple
 import TestComponents.Sprites (Sprite(..))
 
@@ -114,7 +110,7 @@ render = do
       # color (rgba' 0.0 0.0 0.0 0.5)
       # lineWidth 1.0
     apple = case appleMaybe of
-      Just x -> renderGameId x
+      Just x -> renderGame x
       Nothing -> empty
 
   pure $
