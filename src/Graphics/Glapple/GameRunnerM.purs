@@ -222,9 +222,9 @@ runGameM
         nowT <- nowTime
         prevT <- read deltaTimeRef
         let
-          d = diff nowT prevT
+          Milliseconds deltaTime = diff nowT prevT
         write nowT deltaTimeRef
-        fire eventEmitter (Update d)
+        fire eventEmitter (Update { deltaTime: deltaTime / 1000.0 })
       procEnd <- liftEffect nowTime
       let
         Milliseconds dt = diff procEnd procStart

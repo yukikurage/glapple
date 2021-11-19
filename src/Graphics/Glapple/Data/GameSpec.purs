@@ -4,7 +4,6 @@ module Graphics.Glapple.Data.GameSpec where
 
 import Prelude
 
-import Data.Time.Duration (Milliseconds)
 import Graphic.Glapple.GlappleM (GlappleM, getGameState, getTotalTime, putGameState)
 import Graphics.Glapple.Data.Event (Event)
 import Graphics.Glapple.Data.GameSpecM (GameSpecM(..))
@@ -12,7 +11,7 @@ import Graphics.Glapple.Data.Picture (Picture)
 
 newtype GameSpec sprite gameState input = GameSpec
   { initGameState :: gameState
-  , render :: Milliseconds -> gameState -> Picture sprite
+  , render :: {totalTime :: Number} -> gameState -> Picture sprite
   , eventHandler :: Event -> gameState -> gameState
   , inputHandler :: input -> gameState -> gameState
   }
@@ -41,12 +40,12 @@ mkInitGameStateM = pure
 
 mkRenderM
   :: forall sprite gameState i output
-   . (Milliseconds -> gameState -> Picture sprite)
+   . ({ totalTime :: Number } -> gameState -> Picture sprite)
   -> GlappleM sprite gameState i output (Picture sprite)
 mkRenderM f = do
   gameState <- getGameState
   totalTime <- getTotalTime
-  pure $ f totalTime gameState
+  pure $ f { totalTime } gameState
 
 mkHandlerM
   :: forall a sprite gameState i output

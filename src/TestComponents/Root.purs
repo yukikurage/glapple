@@ -5,7 +5,6 @@ import Prelude
 
 import Color (rgb', rgba')
 import Data.Int (floor)
-import Data.Time.Duration (Milliseconds(..))
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
 import Effect.Class (liftEffect)
@@ -41,7 +40,7 @@ gameSpec = GameSpecM
     liftEffect $ tell apple Apple.StartRotate
 
   eventHandler = case _ of
-    Update (Milliseconds t) -> modifyGameState $ _ { fps = 1000.0 / t }
+    Update { deltaTime } -> modifyGameState $ _ { fps = 1.0 / deltaTime }
     KeyEvent "s" KeyDown -> do
       { destroyTest } <- getGameState
       destroy destroyTest

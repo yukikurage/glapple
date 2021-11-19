@@ -6,7 +6,7 @@ import Control.Monad.Reader (class MonadAsk, ReaderT, ask, runReaderT)
 import Control.Monad.State (lift)
 import Data.Maybe (Maybe(..))
 import Data.Time (Time, diff)
-import Data.Time.Duration (Milliseconds)
+import Data.Time.Duration (Milliseconds(..))
 import Effect (Effect)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Exception (throw)
@@ -71,13 +71,15 @@ modifyGameState f = do
 
 getTotalTime
   :: forall s g i o
-   . GlappleM s g i o Milliseconds
+   . GlappleM s g i o Number
 getTotalTime = do
   { initTimeRef } <- ask
   initTimeMaybe <- liftEffect $ read initTimeRef
   nowT <- liftEffect $ nowTime
   case initTimeMaybe of
-    Just initTime -> pure $ (diff nowT initTime)
+    Just initTime -> pure $ t / 1000.0
+      where
+      Milliseconds t = diff nowT initTime
     Nothing -> liftEffect $ throw "Glapple Warning: ゲームが始まる前にtotalTimeを取得しようとしました"
 
 raise

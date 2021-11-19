@@ -2,7 +2,6 @@ module TestComponents.DestroyTest where
 
 import Prelude
 
-import Data.Time.Duration (Milliseconds(..))
 import Effect.Class.Console (logShow)
 import Graphics.Glapple (Event(..), GameSpecM(..), defaultHandler, destroyMe, getGameState, mkInitGameStateM, putGameState)
 import Graphics.Glapple.Data.Picture (rotate, sprite, translate)
@@ -22,10 +21,10 @@ gameSpec = GameSpecM
   }
   where
   eventHandler = case _ of
-    Update (Milliseconds dt) -> do
+    Update { deltaTime } -> do
       logShow "Destroy Test Updated"
       { x } <- getGameState
-      putGameState $ { x: x + dt * 80.0 / 1000.0 }
+      putGameState $ { x: x + deltaTime * 80.0 }
       when (x > 160.0) destroyMe
     _ -> pure unit
   render = do
