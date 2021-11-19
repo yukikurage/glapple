@@ -4,66 +4,60 @@ module Graphics.Glapple.Data.GameSpec where
 
 import Prelude
 
-import Data.Maybe (Maybe)
+import Data.Maybe (Maybe(..))
 import Data.Time.Duration (Milliseconds)
-import Data.Tuple.Nested (type (/\))
-import Effect (Effect)
 import Graphic.Glapple.Data.Event (Event)
 import Graphic.Glapple.GlappleM (GlappleM, getGameState, getTotalTime, putGameState)
-import Graphics.Canvas (CanvasElement)
-import Graphics.Glapple.Data.GameId (GameId)
-import Graphics.Glapple.Data.GameSpecM (CanvasSpec, GameSpecM(..), runGameM_)
-import Graphics.Glapple.Data.Picture (Picture)
+import Graphics.Glapple.Data.GameSpecM (GameSpecM(..))
+import Graphics.Glapple.Data.Picture (Picture, empty)
 
 newtype GameSpec sprite gameState input = GameSpec
-  { fps :: Int
-  , canvasSpec :: CanvasSpec
-  , sprites :: Array (sprite /\ String)
-  , initGameState :: gameState
+  { initGameState :: gameState
   , render :: Maybe Milliseconds -> gameState -> Picture sprite
-  , handler :: Event input -> gameState -> gameState
+  , eventHandler :: Event -> gameState -> gameState
+  , inputHandler :: input -> gameState -> gameState
   }
-
-runGame
-  :: forall sprite gameState input output
-   . Ord sprite
-  => GameSpec sprite gameState input
-  -> CanvasElement
-  -> Effect (GameId gameState input output)
-runGame gameSpec = runGameM_ (mkGameSpecM gameSpec)
 
 mkGameSpecM
   :: forall gameState sprite input output
    . GameSpec sprite gameState input
   -> GameSpecM sprite gameState input output
+
 mkGameSpecM
   ( GameSpec
-      { fps
-      , canvasSpec
-      , initGameState
-      , sprites
+      { initGameState
       , render
-      , handler
+      , eventHandler
+      , inputHandler
       }
   ) = GameSpecM
-  { fps
-  , canvasSpec
-  , initGameState
-  , sprites
+  { initGameState: mkInitGameStateM initGameState
   , render: mkRenderM render
-  , handler: mkHandlerM handler
+  , eventHandler: mkHandlerM eventHandler
+  , inputHandler: mkHandlerM inputHandler
   }
 
+mkInitGameStateM :: forall f a. Applicative f => a -> f a
+mkInitGameStateM = pure
+
 mkRenderM
-  :: forall gameState output sprite
+  :: forall sprite gameState output
    . (Maybe Milliseconds -> gameState -> Picture sprite)
-  -> GlappleM gameState output (Picture sprite)
-mkRenderM f = f <$> getTotalTime <*> getGameState
+  -> GlappleM sprite gameState output (Picture sprite)
+mkRenderM f = do
+  gameStateMaybe <- getGameState
+  totalTime <- getTotalTime
+  pure case gameStateMaybe of
+    Just x -> f totalTime x
+    Nothing -> empty
 
 mkHandlerM
-  :: forall gameState input output
-   . (Event input -> gameState -> gameState)
-  -> Event input
-  -> GlappleM gameState output Unit
-
-mkHandlerM f e = putGameState =<< f e <$> getGameState
+  :: forall a sprite gameState output
+   . (a -> gameState -> gameState)
+  -> a
+  -> GlappleM sprite gameState output Unit
+mkHandlerM f e = do
+  gameStateMaybe <- getGameState
+  putGameState case gameStateMaybe of
+    Just x -> Just $ f e x
+    Nothing -> Nothing

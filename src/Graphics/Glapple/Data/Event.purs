@@ -8,6 +8,6 @@ data KeyState = KeyDown | KeyUp
 
 derive instance Eq KeyState
 
-data Event input = KeyEvent String KeyState | Update Milliseconds | Input input
+data Event = KeyEvent String KeyState | Update Milliseconds
 
-derive instance Eq input => Eq (Event input)
+derive instance Eq input => Eq Event

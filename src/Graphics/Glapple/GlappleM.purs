@@ -11,53 +11,64 @@ import Effect (Effect)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Now (nowTime)
 import Effect.Ref (Ref, modify_, read, write)
+import Graphic.Glapple.Data.Event (Event)
+import Graphics.Canvas (CanvasImageSource, Context2D)
+import Graphics.Glapple.Data.Emitter (EmitterId, fire)
 
--- | 非推奨です(使わないほうがよい)
-type InternalState gameState output =
-  { outputHandler :: output -> Effect Unit
-  , initTimeRef :: Ref (Maybe Time)
-  , gameStateRef :: Ref gameState
+type InternalState sprite gameState output =
+  { eventEmitter :: EmitterId Effect Event
+  , outputEmitter :: EmitterId Effect output
+  , initTimeRef :: Ref (Maybe Time) --ゲーム開始時の時刻
+  , gameStateRef :: Ref (Maybe (gameState)) --ゲームの状態を保存(ゲーム開始前はNothing)
+  , canvasImageSources :: (sprite -> Maybe CanvasImageSource) --読み込んだ画像一覧を保存
+  , context2D :: Context2D
   }
 
-newtype GlappleM gameState output a =
-  GlappleM (ReaderT (InternalState gameState output) Effect a)
+newtype GlappleM sprite gameState output a =
+  GlappleM (ReaderT (InternalState sprite gameState output) Effect a)
 
-derive newtype instance Functor (GlappleM gameState output)
-derive newtype instance Apply (GlappleM gameState output)
-derive newtype instance Applicative (GlappleM gameState output)
-derive newtype instance Bind (GlappleM gameState output)
-derive newtype instance Monad (GlappleM gameState output)
-derive newtype instance MonadAsk (InternalState gameState output) (GlappleM gameState output)
+derive newtype instance Functor (GlappleM sprite gameState output)
+derive newtype instance Apply (GlappleM sprite gameState output)
+derive newtype instance Applicative (GlappleM sprite gameState output)
+derive newtype instance Bind (GlappleM sprite gameState output)
+derive newtype instance Monad (GlappleM sprite gameState output)
+derive newtype instance
+  MonadAsk (InternalState sprite gameState output)
+    (GlappleM sprite gameState output)
 
 runGlappleM
-  :: forall gameState output a
-   . GlappleM gameState output a
-  -> InternalState gameState output
+  :: forall sprite gameState output a
+   . GlappleM sprite gameState output a
+  -> InternalState sprite gameState output
   -> Effect a
 runGlappleM (GlappleM state) f = runReaderT state f
 
-instance MonadEffect (GlappleM gameState output) where
+instance MonadEffect (GlappleM sprite gameState output) where
   liftEffect e = GlappleM $ lift e
 
-getGameState :: forall gameState output. GlappleM gameState output gameState
+getGameState
+  :: forall sprite gameState output
+   . GlappleM sprite gameState output (Maybe gameState)
 getGameState = do
   { gameStateRef } <- ask
   liftEffect $ read gameStateRef
 
-putGameState :: forall gameState output. gameState -> GlappleM gameState output Unit
+putGameState :: forall sprite gameState output. Maybe gameState -> GlappleM sprite gameState output Unit
 putGameState x = do
   { gameStateRef } <- ask
   liftEffect $ write x gameStateRef
 
 modifyGameState
-  :: forall gameState output
+  :: forall sprite gameState output
    . (gameState -> gameState)
-  -> GlappleM gameState output Unit
+  -> GlappleM sprite gameState output Unit
 modifyGameState f = do
   { gameStateRef } <- ask
-  liftEffect $ modify_ f gameStateRef
+  liftEffect $ modify_ (map f) gameStateRef
 
-getTotalTime :: forall gameState output. GlappleM gameState output (Maybe Milliseconds)
+getTotalTime
+  :: forall sprite gameState output
+   . GlappleM sprite gameState output (Maybe Milliseconds)
 getTotalTime = do
   { initTimeRef } <- ask
   initTimeMaybe <- liftEffect $ read initTimeRef
@@ -66,7 +77,10 @@ getTotalTime = do
     Just initTime -> pure $ Just $ diff nowT initTime
     Nothing -> pure Nothing
 
-raise :: forall gameState output. output -> GlappleM gameState output Unit
+raise
+  :: forall sprite gameState output
+   . output
+  -> GlappleM sprite gameState output Unit
 raise output = do
-  { outputHandler } <- ask
-  liftEffect $ outputHandler output
+  { outputEmitter } <- ask --outputのエミッターを取得
+  liftEffect $ fire outputEmitter output --発火

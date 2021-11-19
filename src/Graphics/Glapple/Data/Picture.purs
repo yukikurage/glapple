@@ -20,7 +20,7 @@ instance Semigroup (Picture sprite) where
   append = composite SourceOver
 
 instance Monoid (Picture sprite) where
-  mempty = emptyP
+  mempty = empty
 
 drawPicture
   :: forall sprite
@@ -29,25 +29,6 @@ drawPicture
   -> Picture sprite
   -> Aff Unit
 drawPicture ctx canvasImageSources (Picture f) = f ctx canvasImageSources
-
--- | 色のついていない形を保存したもの
-data Shape sprite
-  = Shape (Context2D -> (sprite -> Maybe CanvasImageSource) -> Aff Unit) --形のみ
-
-instance Semigroup (Shape sprite) where
-  append = pileUp
-
-instance Monoid (Shape sprite) where
-  mempty = empty
-
-drawShape
-  :: forall sprite
-   . Context2D
-  -> (sprite -> Maybe CanvasImageSource)
-  -> Shape sprite
-  -> Aff Unit
-drawShape ctx imgSources = case _ of
-  Shape f -> f ctx imgSources
 
 -- | 画像の読み込み
 tryLoadImageAff :: String -> Aff CanvasImageSource
@@ -77,16 +58,13 @@ data DrawStyle sprite
   | Pattern { sprite :: sprite, repeat :: PatternRepeat }
   | MonoColor Color
 
-type StrokeStyle = { lineWidth :: Number }
+data Shape = Fill | Stroke
 
-data ShapeStyle = Fill | Stroke { lineWidth :: Number }
-
-runShapeStyle :: Context2D -> ShapeStyle -> Effect Unit
-runShapeStyle ctx = case _ of
+runShape :: Context2D -> Shape -> Effect Unit
+runShape ctx = case _ of
   Fill -> do
     fill ctx
-  Stroke { lineWidth } -> do
-    setLineWidth ctx lineWidth
+  Stroke -> do
     stroke ctx
 
 foreign import setGradientStrokeStyle :: Context2D -> CanvasGradient -> Effect Unit
@@ -160,18 +138,6 @@ setFont ctx (Font { fontStyle, fontWeight, fontSize, fontHeight, fontFamily }) =
     <> "px "
     <> show fontFamily
 
-----------------------
--- Shape Operations --
-----------------------
-
-pileUp :: forall s. Shape s -> Shape s -> Shape s
-pileUp shape1 shape2 = Shape \ctx img -> do
-  drawShape ctx img shape1
-  liftEffect $ beginPath ctx --現在の描画の状態をリセット
-  drawShape ctx img shape2
-
-infixl 5 pileUp as <-=
-
 ------------------------
 -- Picture Operations --
 ------------------------
@@ -203,76 +169,53 @@ infixl 5 destinationOverComposite as <-.
 infixl 5 multiplyComposite as <-*
 infixl 5 addComposite as <-+
 
-----------------------------------
--- Picture And Shape Operations --
-----------------------------------
-
-class Transformable a where
-  toContents
-    :: forall sprite
-     . ( Context2D
-         -> (sprite -> Maybe CanvasImageSource)
-         -> Aff Unit
-       )
-    -> a sprite
-  fromContents
-    :: forall sprite
-     . Context2D
-    -> (sprite -> Maybe CanvasImageSource)
-    -> a sprite
-    -> Aff Unit
-
-instance Transformable Picture where
-  toContents = Picture
-  fromContents = drawPicture
-
-instance Transformable Shape where
-  toContents = Shape
-  fromContents = drawShape
-
-translate :: forall a s. Transformable a => Number -> Number -> a s -> a s
-translate x y pic = toContents \ctx canvasImageSources -> do
+translate :: forall s. Number -> Number -> Picture s -> Picture s
+translate x y pic = Picture \ctx canvasImageSources -> do
   liftEffect $ save ctx
   liftEffect $ C.translate ctx { translateX: x, translateY: y }
-  fromContents ctx canvasImageSources pic
+  drawPicture ctx canvasImageSources pic
   liftEffect $ restore ctx
 
-scale :: forall a s. Transformable a => Number -> Number -> a s -> a s
-scale sx sy pic = toContents \ctx canvasImageSources -> do
+scale :: forall s. Number -> Number -> Picture s -> Picture s
+scale sx sy pic = Picture \ctx canvasImageSources -> do
   liftEffect $ save ctx
   liftEffect $ C.scale ctx { scaleX: sx, scaleY: sy }
-  fromContents ctx canvasImageSources pic
+  drawPicture ctx canvasImageSources pic
   liftEffect $ restore ctx
 
 -- | 右回転
-rotate :: forall a s. Transformable a => Number -> a s -> a s
-rotate r pic = toContents \ctx canvasImageSources -> do
+rotate :: forall s. Number -> Picture s -> Picture s
+rotate r pic = Picture \ctx canvasImageSources -> do
   liftEffect $ save ctx
   liftEffect $ C.rotate ctx r
-  fromContents ctx canvasImageSources pic
+  drawPicture ctx canvasImageSources pic
   liftEffect $ restore ctx
 
 transform
-  :: forall a s
-   . Transformable a
-  => Transform
-  -> a s
-  -> a s
-transform trans pic = toContents \ctx canvasImageSources -> do
+  :: forall s
+   . Transform
+  -> Picture s
+  -> Picture s
+transform trans pic = Picture \ctx canvasImageSources -> do
   liftEffect $ save ctx
   liftEffect $ C.transform ctx trans
-  fromContents ctx canvasImageSources pic
+  drawPicture ctx canvasImageSources pic
   liftEffect $ restore ctx
 
 ------------
 -- Shapes --
 ------------
 
-empty :: forall sprite. Shape sprite
-empty = Shape \_ _ -> pure unit
+-- | Pictureに何らかのプロパティをつける
+operate :: forall s. (Context2D -> Effect Unit) -> Picture s -> Picture s
+operate f p = Picture \ctx img -> do
+  liftEffect $ save ctx
+  liftEffect $ f ctx
+  drawPicture ctx img p
+  liftEffect $ restore ctx
 
-emptyP :: forall sprite. Picture sprite
-emptyP = Picture \_ _ -> pure unit
+empty :: forall sprite. Picture sprite
+empty = Picture \_ _ -> pure unit
 
 sprite :: forall sprite. sprite -> Picture sprite
 sprite spr = Picture \ctx canvasImageSources -> case canvasImageSources spr of
@@ -285,41 +228,46 @@ image str = Picture \ctx _ -> do
   imgSource <- tryLoadImageAff str
   liftEffect $ drawImage ctx imgSource 0.0 0.0
 
-draw :: forall s. DrawStyle s -> Shape s -> Picture s
+draw :: forall s. DrawStyle s -> Picture s -> Picture s
 draw drawStyle shape = Picture \ctx img -> do
   liftEffect $ setDrawStyle ctx img drawStyle
-  drawShape ctx img shape
+  drawPicture ctx img shape
 
-color :: forall s. Color -> Shape s -> Picture s
+color :: forall s. Color -> Picture s -> Picture s
 color c s = draw (MonoColor c) s
+
+textAlign :: forall s. TextAlign -> Picture s -> Picture s
+textAlign a = operate (flip setTextAlign a)
+
+font :: forall s. Font -> Picture s -> Picture s
+font f = operate (flip setFont f)
+
+textBaseLine :: forall s. TextBaseline -> Picture s -> Picture s
+textBaseLine b = operate (flip setTextBaseline b)
+
+lineWidth :: forall s. Number -> Picture s -> Picture s
+lineWidth w = operate $ flip setLineWidth w
 
 text
   :: forall sprite
-   . ShapeStyle
-  -> TextAlign
-  -> TextBaseline
-  -> Font
+   . Shape
   -> String
-  -> Shape sprite
-text style align baseline font str = Shape \ctx _ -> liftEffect do
+  -> Picture sprite
+text style str = Picture \ctx _ -> liftEffect do
   save ctx
-  setTextAlign ctx align
-  setTextBaseline ctx baseline
-  setFont ctx font
   case style of
     Fill -> do
       C.fillText ctx str 0.0 0.0
-    Stroke { lineWidth } -> do
-      setLineWidth ctx lineWidth
+    Stroke -> do
       C.strokeText ctx str 0.0 0.0
   restore ctx
 
 polygon
   :: forall sprite
-   . ShapeStyle
+   . Shape
   -> Array (Number /\ Number)
-  -> Shape sprite
-polygon style path = Shape \ctx _ -> liftEffect do
+  -> Picture sprite
+polygon style path = Picture \ctx _ -> liftEffect do
   save ctx
   case uncons path of
     Just { head: (hx /\ hy), tail } -> do
@@ -328,15 +276,14 @@ polygon style path = Shape \ctx _ -> liftEffect do
       for_ tail \(x /\ y) -> lineTo ctx x y
       closePath ctx
     Nothing -> pure unit
-  runShapeStyle ctx style
+  runShape ctx style
   restore ctx
 
 line
   :: forall sprite
-   . StrokeStyle
-  -> Array (Number /\ Number)
-  -> Shape sprite
-line strokeStyle path = Shape \ctx _ -> liftEffect do
+   . Array (Number /\ Number)
+  -> Picture sprite
+line path = Picture \ctx _ -> liftEffect do
   save ctx
   case uncons path of
     Just { head: (hx /\ hy), tail } -> do
@@ -345,33 +292,32 @@ line strokeStyle path = Shape \ctx _ -> liftEffect do
       for_ tail \(x /\ y) -> lineTo ctx x y
       closePath ctx
     Nothing -> pure unit
-  runShapeStyle ctx $ Stroke strokeStyle
+  runShape ctx $ Stroke
   restore ctx
 
 rect
   :: forall s
-   . ShapeStyle
+   . Shape
   -> Number
   -> Number
-  -> Shape s
-rect style height width = Shape \ctx _ -> liftEffect do
+  -> Picture s
+rect style height width = Picture \ctx _ -> liftEffect do
   save ctx
   C.rect ctx { x: 0.0, y: 0.0, height, width }
-  runShapeStyle ctx style
+  runShape ctx style
   restore ctx
 
-arc :: forall s. StrokeStyle -> { start :: Number, end :: Number, radius :: Number } -> Shape s
-arc style { start, end, radius } = Shape \ctx _ -> liftEffect $ do
+arc :: forall s. { start :: Number, end :: Number, radius :: Number } -> Picture s
+arc { start, end, radius } = Picture \ctx _ -> liftEffect $ do
   save ctx
   C.arc ctx { x: 0.0, y: 0.0, start, end, radius }
-  runShapeStyle ctx $ Stroke style
+  runShape ctx $ Stroke
   restore ctx
 
-fan :: forall s. ShapeStyle -> { start :: Number, end :: Number, radius :: Number } -> Shape s
-fan style { radius, start, end } = Shape \ctx _ -> liftEffect do
+fan :: forall s. Shape -> { start :: Number, end :: Number, radius :: Number } -> Picture s
+fan style { radius, start, end } = Picture \ctx _ -> liftEffect do
   save ctx
   moveTo ctx 0.0 0.0
   C.arc ctx { x: 0.0, y: 0.0, start, end, radius }
   closePath ctx
-  runShapeStyle ctx style
-  restore ctx
+  runShape ctx style

@@ -1,15 +1,34 @@
+-- | ゲームの状態を外部から操作する関数
 module Graphics.Glapple.Data.GameId where
 
 import Prelude
 
 import Effect (Effect)
-import Graphic.Glapple.Data.Event (Event(..))
-import Graphic.Glapple.GlappleM (GlappleM, InternalState, runGlappleM)
+import Effect.Class (liftEffect)
+import Graphics.Glapple.Data.Emitter (EmitterId, fire)
+import Graphics.Glapple.Data.Picture (Picture(..))
 
-data GameId gameState input output =
-  GameId (Event input -> GlappleM gameState output Unit)
-    (InternalState gameState output)
+data GameId input =
+  GameId
+    { inputEmitter :: EmitterId Effect input --Input EmitterはInputを取る必要がある
+    , renderEmitter :: EmitterId Effect Unit --Render EmitterもgameStateを取る必要があるのでは？
+    -- ない: gameStateは中で与えられる？から
+    }
 
-tell :: forall gameState input output. GameId gameState input output -> input -> Effect Unit
-tell (GameId handler internal) input = do
-  runGlappleM (handler (Input input)) internal
+-- | GameIdで表されるゲームにInputを発火させます
+tell
+  :: forall input
+   . GameId input
+  -> input
+  -> Effect Unit
+tell (GameId { inputEmitter }) input = fire inputEmitter input
+
+-- | GameIdで表されるゲームの現在の状態を描画 (これちゃんと動く？)
+renderGameId
+  :: forall sprite input
+   . GameId input
+  -> Picture sprite
+renderGameId (GameId { renderEmitter }) = Picture \_ _ ->
+  liftEffect $ fire renderEmitter unit
+
+-- こんなことが許されていいのか……？
