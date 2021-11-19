@@ -4,14 +4,14 @@ module Graphics.Glapple.Data.GameId where
 import Prelude
 
 import Effect (Effect)
-import Effect.Class (liftEffect)
+import Effect.Aff (Aff)
 import Graphics.Glapple.Data.Emitter (EmitterId, fire)
 import Graphics.Glapple.Data.Picture (Picture(..))
 
 data GameId input =
   GameId
     { inputEmitter :: EmitterId Effect input --Input EmitterはInputを取る必要がある
-    , renderEmitter :: EmitterId Effect Unit --Render EmitterもgameStateを取る必要があるのでは？
+    , renderEmitter :: EmitterId Aff Unit --Render EmitterもgameStateを取る必要があるのでは？
     -- ない: gameStateは中で与えられる？から
     }
 
@@ -23,12 +23,9 @@ tell
   -> Effect Unit
 tell (GameId { inputEmitter }) input = fire inputEmitter input
 
--- | GameIdで表されるゲームの現在の状態を描画 (これちゃんと動く？)
+-- | GameIdで表されるゲームの現在の状態を描画
 renderGameId
   :: forall sprite input
    . GameId input
   -> Picture sprite
-renderGameId (GameId { renderEmitter }) = Picture \_ _ ->
-  liftEffect $ fire renderEmitter unit
-
--- こんなことが許されていいのか……？
+renderGameId (GameId { renderEmitter }) = Picture \_ _ -> fire renderEmitter unit

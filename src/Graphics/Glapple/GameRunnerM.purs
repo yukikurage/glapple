@@ -12,13 +12,13 @@ import Data.Time (diff)
 import Data.Traversable (for)
 import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
-import Effect.Aff (Aff, Milliseconds(..), delay, launchAff_, runAff_)
+import Effect.Aff (Aff, Milliseconds(..), delay, launchAff_)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Now (nowTime)
 import Effect.Ref (new, read, write)
 import Graphic.Glapple.Data.Event (Event(..), KeyState(..))
 import Graphic.Glapple.GlappleM (GlappleM, InternalState, runGlappleM)
-import Graphics.Canvas (CanvasElement, CanvasImageSource, clearRect, getContext2D, setCanvasHeight, setCanvasWidth)
+import Graphics.Canvas (CanvasElement, CanvasImageSource, canvasElementToImageSource, clearRect, drawImage, getContext2D, setCanvasHeight, setCanvasWidth)
 import Graphics.Glapple.Data.Emitter (RegistrationId, fire, newEmitter, register)
 import Graphics.Glapple.Data.GameId (GameId(..))
 import Graphics.Glapple.Data.GameSpecM (CanvasSpec, GameSpecM(..))
@@ -34,6 +34,8 @@ import Web.UIEvent.KeyboardEvent as KeyboardEvent
 -- Run Child Game --
 --------------------
 
+foreign import createCanvasElement :: Effect CanvasElement
+
 -- | "親の"GlappleM内で子のGameSpecMから子のInternalStateを作成します
 makeInternalState
   :: forall s g o childG childO
@@ -45,12 +47,12 @@ makeInternalState = do
   pure { eventEmitter, outputEmitter, initTimeRef, gameStateRef, canvasImageSources, context2D }
 
 -- | "子の"GlappleM内でrenderを作成
-makeRenderHandler :: forall s g o. GlappleM s g o (Picture s) -> GlappleM s g o (Unit -> Effect Unit)
+makeRenderHandler :: forall s g o. GlappleM s g o (Picture s) -> GlappleM s g o (Unit -> Aff Unit)
 makeRenderHandler render = do
   internalState@{ canvasImageSources, context2D } <- ask
   pure \_ -> do --ここ以下がレンダリング毎に実行される
-    pic <- runGlappleM render internalState
-    runAff_ (\_ -> pure unit) $ drawPicture context2D canvasImageSources pic
+    pic <- liftEffect $ runGlappleM render internalState
+    drawPicture context2D canvasImageSources pic
 
 makeHandlerEffect :: forall s g o a. (a -> GlappleM s g o Unit) -> GlappleM s g o (a -> Effect Unit)
 makeHandlerEffect eventHandler = do
@@ -70,8 +72,8 @@ registerRenderEmitter
   :: forall i m
    . MonadEffect m
   => GameId i
-  -> (Unit -> Effect Unit)
-  -> m (RegistrationId Effect Unit)
+  -> (Unit -> Aff Unit)
+  -> m (RegistrationId Aff Unit)
 registerRenderEmitter (GameId { renderEmitter }) render = register renderEmitter render
 
 -- | "子の"GlappleM内でinputEmitterにinputHandlerを登録
@@ -166,7 +168,11 @@ runGameM
     gameId = GameId { inputEmitter, renderEmitter }
 
   -- キャンバス系
+  offCanvas <- createCanvasElement --裏画面
+  offContext2D <- getContext2D offCanvas --裏画面のcontext2D
   context2D <- getContext2D canvasElement
+  setCanvasHeight offCanvas height
+  setCanvasWidth offCanvas width
   setCanvasHeight canvasElement height
   setCanvasWidth canvasElement width
 
@@ -186,7 +192,7 @@ runGameM
   launchAff_ do
     canvasImageSources <- loadImages sprites
     let
-      internal = { eventEmitter, outputEmitter, initTimeRef, gameStateRef, canvasImageSources, context2D }
+      internal = { eventEmitter, outputEmitter, initTimeRef, gameStateRef, canvasImageSources, context2D: offContext2D }
     -- GlappleM内での処理
     _ <- liftEffect $ flip runGlappleM internal do
       initGame <- initGameState
@@ -205,29 +211,28 @@ runGameM
     nowT <- liftEffect $ nowTime
     liftEffect $ write (Just nowT) initTimeRef
 
-    forever $ mainProc context2D deltaTimeRef eventEmitter renderEmitter :: Aff Unit
+    forever $ do
+      procStart <- liftEffect nowTime
+
+      liftEffect $ clearRect offContext2D { x: 0.0, y: 0.0, height, width }
+      fire renderEmitter unit
+      liftEffect $ clearRect context2D { x: 0.0, y: 0.0, height, width }
+      liftEffect $ drawImage context2D (canvasElementToImageSource offCanvas) 0.0 0.0
+
+      liftEffect do
+        nowT <- nowTime
+        prevT <- read deltaTimeRef
+        let
+          d = diff nowT prevT
+        write nowT deltaTimeRef
+        fire eventEmitter (Update d)
+      procEnd <- liftEffect nowTime
+      let
+        Milliseconds dt = diff procEnd procStart
+
+      delay $ Milliseconds $ max 0.0 $ 1000.0 / toNumber fps - dt
 
   pure $ gameId
-
-  where
-  mainProc ctx deltaTimeRef eventEmitter renderEmitter = do
-    procStart <- liftEffect nowTime
-
-    liftEffect $ clearRect ctx { x: 0.0, y: 0.0, height, width }
-    liftEffect $ fire renderEmitter unit
-
-    liftEffect do
-      nowT <- nowTime
-      prevT <- read deltaTimeRef
-      let
-        d = diff nowT prevT
-      write nowT deltaTimeRef
-      fire eventEmitter (Update d)
-    procEnd <- liftEffect nowTime
-    let
-      Milliseconds dt = diff procEnd procStart
-
-    delay $ Milliseconds $ max 0.0 $ 1000.0 / toNumber fps - dt
 
 -- | runGameのOutputHandlerなしバージョン
 runGameM_

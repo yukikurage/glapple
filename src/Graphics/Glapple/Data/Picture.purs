@@ -228,6 +228,7 @@ image str = Picture \ctx _ -> do
   imgSource <- tryLoadImageAff str
   liftEffect $ drawImage ctx imgSource 0.0 0.0
 
+-- | 色をつけます
 draw :: forall s. DrawStyle s -> Picture s -> Picture s
 draw drawStyle shape = Picture \ctx img -> do
   liftEffect $ setDrawStyle ctx img drawStyle
