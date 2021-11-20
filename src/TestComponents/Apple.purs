@@ -2,7 +2,8 @@ module TestComponents.Apple where
 
 import Prelude
 
-import Graphics.Glapple (Event(..), GameSpecM(..), KeyState(..), getGameState, getTotalTime, mkHandlerM, mkInitGameStateM)
+import Effect.Class.Console (logShow)
+import Graphics.Glapple (Event(..), GameSpecM(..), KeyCode(..), KeyState(..), getGameState, getTotalTime, mkHandlerM, mkInitGameStateM, modifyGameState)
 import Graphics.Glapple.Data.Picture (rotate, scale, sprite, translate)
 import Math (pi)
 import TestComponents.Sprites (Sprite(..))
@@ -20,9 +21,10 @@ gameSpec = GameSpecM
   , initGameState: mkInitGameStateM { rotating: false }
   }
   where
-  eventHandler = mkHandlerM case _ of
-    KeyEvent "w" KeyDown -> \{ rotating } -> { rotating: not rotating }
-    _ -> identity
+  eventHandler = case _ of
+    KeyEvent { keyCode: Keyboard "KeyW", keyState: KeyDown } -> modifyGameState \{ rotating } -> { rotating: not rotating }
+    KeyEvent { keyCode: Keyboard s } -> logShow s
+    _ -> pure unit
   inputHandler = mkHandlerM case _ of
     StartRotate -> \_ -> { rotating: true }
   render = do
@@ -32,7 +34,7 @@ gameSpec = GameSpecM
       revolution = if rotating then rotate (2.0 * pi * time * 2.0) else identity
     pure $ sprite Apple
       # translate (-16.0) (-16.0)
-      # scale 5.0 5.0
+      # scale 1.0 1.0
       # rotate (2.0 * pi * time * 5.0)
-      # translate 80.0 80.0
+      # translate 40.0 40.0
       # revolution

@@ -8,10 +8,10 @@ import Data.Int (floor)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
 import Effect.Class (liftEffect)
-import Graphics.Glapple.GlappleM (getGameState, modifyGameState)
 import Graphics.Canvas (PatternRepeat(..), TextAlign(..), TextBaseline(..))
-import Graphics.Glapple (Event(..), GameId, GameSpecM(..), KeyState(..), destroy, renderGame, runChildGameM_, tell)
+import Graphics.Glapple (Event(..), GameId, GameSpecM(..), KeyCode(..), KeyState(..), destroy, getMousePosition, renderGame, runChildGameM_, tell)
 import Graphics.Glapple.Data.Picture (DrawStyle(..), Font(..), FontFamily(..), FontStyle(..), FontWeight(..), Picture, Shape(..), arc, color, draw, fan, font, lineWidth, polygon, rect, rotate, text, textAlign, textBaseLine, translate, (<-*), (<-+), (<-.), (<-^))
+import Graphics.Glapple.GlappleM (getGameState, modifyGameState)
 import TestComponents.Apple as Apple
 import TestComponents.DestroyTest as DestroyTest
 import TestComponents.Sprites (Sprite(..))
@@ -41,7 +41,7 @@ gameSpec = GameSpecM
 
   eventHandler = case _ of
     Update { deltaTime } -> modifyGameState $ _ { fps = 1.0 / deltaTime }
-    KeyEvent "s" KeyDown -> do
+    KeyEvent { keyCode: Keyboard "KeyS", keyState: KeyDown } -> do
       { destroyTest } <- getGameState
       destroy destroyTest
     _ -> pure unit
@@ -53,6 +53,7 @@ gameSpec = GameSpecM
 
   render = do
     { apple, destroyTest, fps } <- getGameState
+    { mouseX, mouseY } <- getMousePosition
     let
       fpsText = text Stroke (show $ floor fps)
         # textAlign AlignRight
@@ -64,7 +65,7 @@ gameSpec = GameSpecM
 
     pure $
       fpsText
-        <-+ translate 160.0 160.0 (renderGame apple)
+        <-+ translate mouseX mouseY (renderGame apple)
         <-^ testPolygon
         <-. testPolygon2
         <-^ testPolygon3
