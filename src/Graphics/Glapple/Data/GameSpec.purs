@@ -4,14 +4,14 @@ module Graphics.Glapple.Data.GameSpec where
 
 import Prelude
 
-import Graphic.Glapple.GlappleM (GlappleM, getGameState, getTotalTime, putGameState)
+import Graphics.Glapple.GlappleM (GlappleM, getGameState, getTotalTime, putGameState)
 import Graphics.Glapple.Data.Event (Event)
 import Graphics.Glapple.Data.GameSpecM (GameSpecM(..))
 import Graphics.Glapple.Data.Picture (Picture)
 
 newtype GameSpec sprite gameState input = GameSpec
   { initGameState :: gameState
-  , render :: {totalTime :: Number} -> gameState -> Picture sprite
+  , render :: { totalTime :: Number } -> gameState -> Picture sprite
   , eventHandler :: Event -> gameState -> gameState
   , inputHandler :: input -> gameState -> gameState
   }

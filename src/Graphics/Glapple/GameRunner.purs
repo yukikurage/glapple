@@ -4,7 +4,7 @@ import Prelude
 
 import Data.Tuple.Nested (type (/\))
 import Effect (Effect)
-import Graphic.Glapple.GlappleM (GlappleM)
+import Graphics.Glapple.GlappleM (GlappleM)
 import Graphics.Canvas (CanvasElement)
 import Graphics.Glapple.Data.GameId (GameId)
 import Graphics.Glapple.Data.GameSpec (GameSpec, mkGameSpecM)

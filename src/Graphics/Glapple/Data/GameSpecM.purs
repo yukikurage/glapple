@@ -9,7 +9,7 @@ module Graphics.Glapple.Data.GameSpecM
 import Prelude
 
 import Graphics.Glapple.Data.Event (Event)
-import Graphic.Glapple.GlappleM (GlappleM)
+import Graphics.Glapple.GlappleM (GlappleM)
 import Graphics.Glapple.Data.Picture (Picture, empty)
 
 type CanvasSpec =

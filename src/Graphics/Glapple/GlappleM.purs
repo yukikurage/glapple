@@ -1,4 +1,4 @@
-module Graphic.Glapple.GlappleM where
+module Graphics.Glapple.GlappleM where
 
 import Prelude
 
