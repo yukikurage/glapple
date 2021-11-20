@@ -69,10 +69,10 @@ makeHandlerEffect internalState eventHandler = \e -> catchException logShow
 runChildGameM
   :: forall s g i o childG childI childO
    . GameSpecM s childG childI childO
-  -> (childO -> Effect Unit)
+  -> (childO -> GlappleM s g i o Unit)
   -> GlappleM s g i o (GameId s childI childO)
 runChildGameM (GameSpecM { initGameState, render, eventHandler, inputHandler }) outputHandler = do
-  { eventEmitter, initTimeRef, keyStateRef, mousePositionRef } <- ask
+  internalState@{ eventEmitter, initTimeRef, keyStateRef, mousePositionRef } <- ask
   gameStateRef <- liftEffect $ new Nothing
   internalRegistrationIdsRef <- liftEffect $ new Nothing
 
@@ -95,9 +95,10 @@ runChildGameM (GameSpecM { initGameState, render, eventHandler, inputHandler }) 
     inputHandler_ = makeHandlerEffect childInternalState inputHandler
     renderHandler_ = makeRenderHandler childInternalState render
     eventHandler_ = makeHandlerEffect childInternalState eventHandler
+    outputHandler_ = makeHandlerEffect internalState outputHandler
 
   inputId <- register inputEmitter inputHandler_
-  outputId <- register outputEmitter outputHandler
+  outputId <- register outputEmitter outputHandler_
   renderId <- register renderEmitter renderHandler_
   eventId <- register eventEmitter eventHandler_
 

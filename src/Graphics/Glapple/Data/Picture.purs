@@ -11,7 +11,7 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
 import Effect.Aff (Aff, error, makeAff)
 import Effect.Class (liftEffect)
-import Graphics.Canvas (CanvasGradient, CanvasImageSource, CanvasPattern, Composite(..), Context2D, PatternRepeat, TextAlign, TextBaseline, Transform, addColorStop, beginPath, closePath, createLinearGradient, createPattern, createRadialGradient, drawImage, fill, lineTo, moveTo, restore, save, setGlobalCompositeOperation, setGradientFillStyle, setLineWidth, setPatternFillStyle, setTextAlign, setTextBaseline, stroke, tryLoadImage)
+import Graphics.Canvas (CanvasGradient, CanvasImageSource, CanvasPattern, Composite(..), Context2D, PatternRepeat, TextAlign, TextBaseline, Transform, addColorStop, beginPath, closePath, createLinearGradient, createPattern, createRadialGradient, drawImage, fill, lineTo, moveTo, restore, save, setGlobalAlpha, setGlobalCompositeOperation, setGradientFillStyle, setLineWidth, setPatternFillStyle, setTextAlign, setTextBaseline, stroke, tryLoadImage)
 import Graphics.Canvas as C
 
 newtype Picture sprite = Picture (Context2D -> (sprite -> Maybe CanvasImageSource) -> Aff Unit)
@@ -231,8 +231,13 @@ image str = Picture \ctx _ -> do
 -- | 色をつけます
 draw :: forall s. DrawStyle s -> Picture s -> Picture s
 draw drawStyle shape = Picture \ctx img -> do
+  liftEffect $ save ctx
   liftEffect $ setDrawStyle ctx img drawStyle
   drawPicture ctx img shape
+  liftEffect $ restore ctx
+
+opacity :: forall s. Number -> Picture s -> Picture s
+opacity o = operate (flip setGlobalAlpha o)
 
 color :: forall s. Color -> Picture s -> Picture s
 color c s = draw (MonoColor c) s

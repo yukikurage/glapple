@@ -12,6 +12,8 @@ import Graphics.Glapple.Data.Emitter (EmitterId, fire)
 import Graphics.Glapple.Data.InternalRegistrationIds (InternalRegistrationIds, unregisterGame)
 import Graphics.Glapple.Data.Picture (Picture(..))
 
+-- | ゲームを指し示すIDです．
+-- | これを使って外部からゲームに指示できます．
 data GameId s i o =
   GameId
     { inputEmitter :: EmitterId Effect i --Input EmitterはInputを取る必要がある
