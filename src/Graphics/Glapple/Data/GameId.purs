@@ -6,7 +6,7 @@ import Prelude
 import Data.Maybe (Maybe)
 import Effect (Effect)
 import Effect.Aff (Aff)
-import Effect.Class (class MonadEffect)
+import Effect.Class (class MonadEffect, liftEffect)
 import Graphics.Canvas (CanvasImageSource, Context2D)
 import Graphics.Glapple.Data.Emitter (EmitterId, fire)
 import Graphics.Glapple.Data.InternalRegistrationIds (InternalRegistrationIds, unregisterGame)
@@ -27,11 +27,12 @@ data GameId s i o =
 
 -- | GameIdで表されるゲームにInputを発火させます
 tell
-  :: forall s i o
-   . GameId s i o
+  :: forall s i o m
+   . MonadEffect m
+  => GameId s i o
   -> i
-  -> Effect Unit
-tell (GameId { inputEmitter }) input = fire inputEmitter input
+  -> m Unit
+tell (GameId { inputEmitter }) input = liftEffect $ fire inputEmitter input
 
 -- | GameIdで表されるゲームの状態を描画
 renderGame

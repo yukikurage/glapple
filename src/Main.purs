@@ -21,4 +21,4 @@ main = do
       gameId <- runGameM_ 60 canvas { width: 320.0, height: 320.0 } sprites gameSpec
       runAff_ (const $ pure unit) do
         delay $ Milliseconds 3000.0
-        liftEffect $ tell gameId unit
+        liftEffect $ tell gameId $ unit

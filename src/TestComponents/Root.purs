@@ -10,10 +10,11 @@ import Data.Tuple.Nested ((/\))
 import Effect.Class (liftEffect)
 import Graphics.Canvas (PatternRepeat(..), TextAlign(..), TextBaseline(..))
 import Graphics.Glapple (Event(..), GameId, GameSpecM(..), KeyCode(..), KeyState(..), destroy, getMousePosition, renderGame, runChildGameM_, tell)
-import Graphics.Glapple.Data.Picture (DrawStyle(..), Font(..), FontFamily(..), FontStyle(..), FontWeight(..), Picture, Shape(..), arc, color, draw, fan, font, lineWidth, polygon, rect, rotate, text, textAlign, textBaseLine, translate, (<-*), (<-+), (<-.), (<-^))
+import Graphics.Glapple.Data.Picture (DrawStyle(..), Font(..), FontFamily(..), FontStyle(..), FontWeight(..), Picture, Shape(..), arc, color, draw, fan, font, lineWidth, polygon, rect, rotate, scale, sprite, text, textAlign, textBaseLine, translate, (<-*), (<-+), (<-.), (<-^))
 import Graphics.Glapple.GlappleM (getGameState, modifyGameState)
 import TestComponents.Apple as Apple
 import TestComponents.DestroyTest as DestroyTest
+import TestComponents.ParticleTest as ParticleTest
 import TestComponents.Sprites (Sprite(..))
 
 -- テスト用のゲーム
@@ -22,6 +23,7 @@ type GameState =
   , rotating :: Boolean
   , apple :: GameId Sprite Apple.Input Unit
   , destroyTest :: GameId Sprite Unit Unit
+  , particle :: GameId Sprite ParticleTest.Input Unit
   }
 
 type Input = Unit
@@ -37,10 +39,10 @@ gameSpec = GameSpecM
   where
   inputHandler _ = do
     { apple } <- getGameState
-    liftEffect $ tell apple Apple.StartRotate
+    liftEffect $ tell apple $ Apple.StartRotate
 
   eventHandler = case _ of
-    Update { deltaTime } -> modifyGameState $ _ { fps = 1.0 / deltaTime }
+    Update { deltaTime } -> modifyGameState $ \g@{ fps } -> g { fps = (1.0 / deltaTime) * 0.1 + fps * 0.9 }
     KeyEvent { keyCode: Keyboard "KeyS", keyState: KeyDown } -> do
       { destroyTest } <- getGameState
       destroy destroyTest
@@ -49,10 +51,14 @@ gameSpec = GameSpecM
   initGameState = do
     apple <- runChildGameM_ Apple.gameSpec
     destroyTest <- runChildGameM_ DestroyTest.gameSpec
-    pure { fps: 0.0, rotating: false, apple, destroyTest }
+    particle <- runChildGameM_ $ ParticleTest.gameSpec 30.0
+      $ scale 0.5 0.5
+      $ translate (-16.0) (-16.0)
+      $ sprite Apple
+    pure { fps: 0.0, rotating: false, apple, destroyTest, particle }
 
   render = do
-    { apple, destroyTest, fps } <- getGameState
+    { apple, destroyTest, fps, particle } <- getGameState
     { mouseX, mouseY } <- getMousePosition
     let
       fpsText = text Stroke (show $ floor fps)
@@ -63,9 +69,11 @@ gameSpec = GameSpecM
         # color (rgba' 0.0 0.0 0.0 0.5)
         # lineWidth 1.0
 
+    tell particle { x: mouseX, y: mouseY }
+
     pure $
       fpsText
-        <-+ translate mouseX mouseY (renderGame apple)
+        <-+ renderGame apple
         <-^ testPolygon
         <-. testPolygon2
         <-^ testPolygon3
@@ -74,6 +82,7 @@ gameSpec = GameSpecM
         <-+ testArc
         <-+ testFan
         <-^ renderGame destroyTest
+        <-^ renderGame particle
 
 testPolygon :: forall sprite. Picture sprite
 testPolygon = polygon Fill polyData

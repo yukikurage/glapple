@@ -1,5 +1,5 @@
 -- | runGameMでゲームを実行します．
-module Graphics.Glapple.GameRunnerM (runChildGameM, runChildGameM_, runGameM, runGameM_) where
+module Graphics.Glapple.GameRunnerM (runChildGameM, runChildGameM_, runGameM, runGameM_, runGameSlot, runGameSlot_) where
 
 import Prelude
 
@@ -15,7 +15,6 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
 import Effect.Aff (Aff, Milliseconds(..), delay, launchAff_)
 import Effect.Class (liftEffect)
-import Effect.Class.Console (logShow)
 import Effect.Exception (catchException)
 import Effect.Now (nowTime)
 import Effect.Ref (modify_, new, read, write)
@@ -23,6 +22,7 @@ import Graphics.Canvas (CanvasElement, CanvasImageSource, Context2D, canvasEleme
 import Graphics.Glapple.Data.Emitter (fire, newEmitter, register)
 import Graphics.Glapple.Data.Event (Event(..), KeyCode(..), KeyState(..), MouseButton(..))
 import Graphics.Glapple.Data.GameId (GameId(..))
+import Graphics.Glapple.Data.GameSlot (GameSlot(..))
 import Graphics.Glapple.Data.GameSpecM (CanvasSpec, GameSpecM(..))
 import Graphics.Glapple.Data.Picture (Picture, drawPicture, empty, tryLoadImageAff)
 import Graphics.Glapple.GlappleM (GlappleM, InternalState, runGlappleM)
@@ -50,11 +50,7 @@ makeRenderHandler
   -> GlappleM s g i o (Picture s)
   -> ({ context2D :: Context2D, canvasImageSources :: s -> Maybe CanvasImageSource } -> Aff Unit)
 makeRenderHandler internalState render = \{ context2D, canvasImageSources } -> do --ここ以下がレンダリング毎に実行される
-  let
-    f x = do --エラー処理
-      logShow x
-      pure empty
-  pic <- liftEffect $ catchException f $ runGlappleM render internalState
+  pic <- liftEffect $ catchException (const $ pure empty) $ runGlappleM render internalState
   drawPicture context2D canvasImageSources pic
 
 makeHandlerEffect
@@ -62,7 +58,7 @@ makeHandlerEffect
    . InternalState s g i o
   -> (a -> GlappleM s g i o Unit)
   -> (a -> Effect Unit)
-makeHandlerEffect internalState eventHandler = \e -> catchException logShow
+makeHandlerEffect internalState eventHandler = \e -> catchException (const $ pure unit)
   $ runGlappleM (eventHandler e) internalState
 
 -- | 現在のゲームの中で，新しく子ゲームを作る
@@ -120,9 +116,66 @@ runChildGameM_
   -> GlappleM s g i o (GameId s childI childO)
 runChildGameM_ gameSpecM = runChildGameM gameSpecM \_ -> pure unit
 
+------------------
+-- Run GameSlot --
+------------------
+-- | GameSlotにGameを追加する
+runGameSlot
+  :: forall s g i o childG childI childO
+   . GameSpecM s childG childI childO
+  -> GameSlot s childI
+  -> (childO -> GlappleM s g i o Unit)
+  -> GlappleM s g i o Unit
+runGameSlot (GameSpecM { initGameState, render, eventHandler, inputHandler }) (GameSlot { inputEmitter, renderEmitter }) outputHandler = do
+  internalState@{ eventEmitter, initTimeRef, keyStateRef, mousePositionRef } <- ask
+  gameStateRef <- liftEffect $ new Nothing
+  internalRegistrationIdsRef <- liftEffect $ new Nothing
+
+  outputEmitter <- newEmitter
+
+  let
+    childInternalState =
+      { eventEmitter
+      , outputEmitter
+      , initTimeRef
+      , gameStateRef
+      , internalRegistrationIdsRef
+      , keyStateRef
+      , mousePositionRef
+      }
+
+  let
+    inputHandler_ = makeHandlerEffect childInternalState inputHandler
+    renderHandler_ = makeRenderHandler childInternalState render
+    eventHandler_ = makeHandlerEffect childInternalState eventHandler
+    outputHandler_ = makeHandlerEffect internalState outputHandler
+
+  inputId <- register inputEmitter inputHandler_
+  outputId <- register outputEmitter outputHandler_
+  renderId <- register renderEmitter renderHandler_
+  eventId <- register eventEmitter eventHandler_
+
+  let
+    internalRegistrationIds = { inputId, outputId, eventId, renderId }
+
+  liftEffect $ write (Just internalRegistrationIds) internalRegistrationIdsRef
+
+  liftEffect $ flip runGlappleM childInternalState do
+    gameState <- initGameState
+    liftEffect $ write (Just gameState) gameStateRef
+
+  pure unit
+
+runGameSlot_
+  :: forall s g i o childG childI childO
+   . GameSpecM s childG childI childO
+  -> GameSlot s childI
+  -> GlappleM s g i o Unit
+runGameSlot_ gameSpecM gameSlot = runGameSlot gameSpecM gameSlot \_ -> pure unit
+
 --------------
 -- Run Game --
--- --------------
+-- -----------
 
 loadImages :: forall s. Ord s => Array (s /\ String) -> Aff (s -> Maybe CanvasImageSource)
 loadImages sprites = do

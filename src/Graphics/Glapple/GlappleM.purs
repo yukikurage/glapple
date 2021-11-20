@@ -98,7 +98,9 @@ destroyMe = do
   { internalRegistrationIdsRef } <- ask
   internalRegistrationIdsMaybe <- liftEffect $ read internalRegistrationIdsRef
   case internalRegistrationIdsMaybe of
-    Just x -> unregisterGame x
+    Just x -> do
+      unregisterGame x
+      liftEffect $ throw "destroyed" --例外を投げて強制的に処理をとめている 健全な使い方ではないかもしれない
     Nothing -> liftEffect $ throw "初期化前にゲームを破棄することはできません"
 
 getKeyState :: forall s g i o. KeyCode -> GlappleM s g i o Boolean

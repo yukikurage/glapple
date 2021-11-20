@@ -34,7 +34,8 @@ gameSpec = GameSpecM
       revolution = if rotating then rotate (2.0 * pi * time * 2.0) else identity
     pure $ sprite Apple
       # translate (-16.0) (-16.0)
-      # scale 1.0 1.0
+      # scale 6.0 6.0
       # rotate (2.0 * pi * time * 5.0)
-      # translate 40.0 40.0
+      # translate 80.0 80.0
       # revolution
+      # translate 160.0 160.0

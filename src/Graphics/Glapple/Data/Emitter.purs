@@ -1,4 +1,4 @@
-module Graphics.Glapple.Data.Emitter(newEmitter, unregister, unregisterAll, register, fire, EmitterId, RegistrationId) where
+module Graphics.Glapple.Data.Emitter (newEmitter, unregister, unregisterAll, register, fire, EmitterId, RegistrationId) where
 
 import Prelude
 
