@@ -1,5 +1,5 @@
 -- | runGameMでゲームを実行します．
-module Graphics.Glapple.GameRunnerM (runChildGameM, runChildGameM_, runGameM, runGameM_, runGameSlot, runGameSlot_) where
+module Graphics.Glapple.GameRunnerM (runChildGameM, runChildGameM_, runGameM, runGameM_, runGameWithM, runGameWithM_, createCanvasElement) where
 
 import Prelude
 
@@ -7,7 +7,7 @@ import Control.Monad.Reader (ask)
 import Control.Monad.Rec.Class (forever)
 import Data.Int (toNumber)
 import Data.Map (fromFoldable, lookup)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Set (delete, insert)
 import Data.Time (diff)
 import Data.Traversable (for)
@@ -15,14 +15,12 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
 import Effect.Aff (Aff, Milliseconds(..), delay, launchAff_)
 import Effect.Class (liftEffect)
-import Effect.Exception (catchException)
 import Effect.Now (nowTime)
 import Effect.Ref (modify_, new, read, write)
 import Graphics.Canvas (CanvasElement, CanvasImageSource, Context2D, canvasElementToImageSource, clearRect, drawImage, getContext2D, setCanvasHeight, setCanvasWidth)
 import Graphics.Glapple.Data.Emitter (fire, newEmitter, register)
 import Graphics.Glapple.Data.Event (Event(..), KeyCode(..), KeyState(..), MouseButton(..))
 import Graphics.Glapple.Data.GameId (GameId(..))
-import Graphics.Glapple.Data.GameSlot (GameSlot(..))
 import Graphics.Glapple.Data.GameSpecM (CanvasSpec, GameSpecM(..))
 import Graphics.Glapple.Data.Picture (Picture, drawPicture, empty, tryLoadImageAff)
 import Graphics.Glapple.GlappleM (GlappleM, InternalState, runGlappleM)
@@ -50,7 +48,7 @@ makeRenderHandler
   -> GlappleM s g i o (Picture s)
   -> ({ context2D :: Context2D, canvasImageSources :: s -> Maybe CanvasImageSource } -> Aff Unit)
 makeRenderHandler internalState render = \{ context2D, canvasImageSources } -> do --ここ以下がレンダリング毎に実行される
-  pic <- liftEffect $ catchException (const $ pure empty) $ runGlappleM render internalState
+  pic <- liftEffect $ map (fromMaybe empty) $ runGlappleM render internalState
   drawPicture context2D canvasImageSources pic
 
 makeHandlerEffect
@@ -58,7 +56,7 @@ makeHandlerEffect
    . InternalState s g i o
   -> (a -> GlappleM s g i o Unit)
   -> (a -> Effect Unit)
-makeHandlerEffect internalState eventHandler = \e -> catchException (const $ pure unit)
+makeHandlerEffect internalState eventHandler = \e -> map (fromMaybe unit)
   $ runGlappleM (eventHandler e) internalState
 
 -- | 現在のゲームの中で，新しく子ゲームを作る
@@ -66,7 +64,7 @@ runChildGameM
   :: forall s g i o childG childI childO
    . GameSpecM s childG childI childO
   -> (childO -> GlappleM s g i o Unit)
-  -> GlappleM s g i o (GameId s childI childO)
+  -> GlappleM s g i o (GameId s childI)
 runChildGameM (GameSpecM { initGameState, render, eventHandler, inputHandler }) outputHandler = do
   internalState@{ eventEmitter, initTimeRef, keyStateRef, mousePositionRef } <- ask
   gameStateRef <- liftEffect $ new Nothing
@@ -100,11 +98,11 @@ runChildGameM (GameSpecM { initGameState, render, eventHandler, inputHandler }) 
 
   let
     internalRegistrationIds = { inputId, outputId, eventId, renderId }
-    gameId = GameId { inputEmitter, renderEmitter, internalRegistrationIds }
+    gameId = GameId { inputEmitter, renderEmitter }
 
   liftEffect $ write (Just internalRegistrationIds) internalRegistrationIdsRef
 
-  liftEffect $ flip runGlappleM childInternalState do
+  _ <- liftEffect $ flip runGlappleM childInternalState do
     gameState <- initGameState
     liftEffect $ write (Just gameState) gameStateRef
 
@@ -113,20 +111,20 @@ runChildGameM (GameSpecM { initGameState, render, eventHandler, inputHandler }) 
 runChildGameM_
   :: forall s g i o childG childI childO
    . GameSpecM s childG childI childO
-  -> GlappleM s g i o (GameId s childI childO)
+  -> GlappleM s g i o (GameId s childI)
 runChildGameM_ gameSpecM = runChildGameM gameSpecM \_ -> pure unit
 
-------------------
--- Run GameSlot --
-------------------
+-------------------
+-- Run Game With --
+-------------------
 -- | GameSlotにGameを追加する
-runGameSlot
+runGameWithM
   :: forall s g i o childG childI childO
    . GameSpecM s childG childI childO
-  -> GameSlot s childI
+  -> GameId s childI
   -> (childO -> GlappleM s g i o Unit)
   -> GlappleM s g i o Unit
-runGameSlot (GameSpecM { initGameState, render, eventHandler, inputHandler }) (GameSlot { inputEmitter, renderEmitter }) outputHandler = do
+runGameWithM (GameSpecM { initGameState, render, eventHandler, inputHandler }) (GameId { inputEmitter, renderEmitter }) outputHandler = do
   internalState@{ eventEmitter, initTimeRef, keyStateRef, mousePositionRef } <- ask
   gameStateRef <- liftEffect $ new Nothing
   internalRegistrationIdsRef <- liftEffect $ new Nothing
@@ -160,18 +158,18 @@ runGameSlot (GameSpecM { initGameState, render, eventHandler, inputHandler }) (G
 
   liftEffect $ write (Just internalRegistrationIds) internalRegistrationIdsRef
 
-  liftEffect $ flip runGlappleM childInternalState do
+  _ <- liftEffect $ flip runGlappleM childInternalState do
     gameState <- initGameState
     liftEffect $ write (Just gameState) gameStateRef
 
   pure unit
 
-runGameSlot_
+runGameWithM_
   :: forall s g i o childG childI childO
    . GameSpecM s childG childI childO
-  -> GameSlot s childI
+  -> GameId s childI
   -> GlappleM s g i o Unit
-runGameSlot_ gameSpecM gameSlot = runGameSlot gameSpecM gameSlot \_ -> pure unit
+runGameWithM_ gameSpecM gameSlot = runGameWithM gameSpecM gameSlot \_ -> pure unit
 
 --------------
 -- Run Game --
@@ -187,13 +185,13 @@ loadImages sprites = do
 runGameM
   :: forall s g i o
    . Ord s
-  => Int
+  => Number
   -> CanvasElement
   -> CanvasSpec
   -> Array (s /\ String)
   -> GameSpecM s g i o
   -> (o -> Effect Unit)
-  -> Effect (GameId s i o)
+  -> Effect (GameId s i)
 
 runGameM
   fps
@@ -238,7 +236,7 @@ runGameM
 
   let
     internalRegistrationIds = { inputId, outputId, renderId, eventId }
-    gameId = GameId { inputEmitter, renderEmitter, internalRegistrationIds }
+    gameId = GameId { inputEmitter, renderEmitter }
 
   write (Just internalRegistrationIds) internalRegistrationIdsRef
 
@@ -317,7 +315,7 @@ runGameM
   addEventListener mousemove mouseMoveHandler false w
 
   -- GameStateの初期化
-  liftEffect $ flip runGlappleM internalState do
+  _ <- liftEffect $ flip runGlappleM internalState do
     gameState <- initGameState
     liftEffect $ write (Just gameState) gameStateRef
 
@@ -332,6 +330,7 @@ runGameM
       procStart <- liftEffect nowTime
 
       liftEffect $ clearRect offContext2D { x: 0.0, y: 0.0, height, width }
+
       fire renderEmitter { canvasImageSources, context2D: offContext2D }
       liftEffect $ clearRect context2D { x: 0.0, y: 0.0, height, width }
       liftEffect $ drawImage context2D (canvasElementToImageSource offCanvas) 0.0 0.0
@@ -347,7 +346,7 @@ runGameM
       let
         Milliseconds dt = diff procEnd procStart
 
-      delay $ Milliseconds $ max 0.0 $ 1000.0 / toNumber fps - dt
+      delay $ Milliseconds $ max 0.0 $ 1000.0 / fps - dt
 
   pure $ gameId
 
@@ -355,11 +354,11 @@ runGameM
 runGameM_
   :: forall s g i o
    . Ord s
-  => Int
+  => Number
   -> CanvasElement
   -> CanvasSpec
   -> Array (s /\ String)
   -> GameSpecM s g i o
-  -> Effect (GameId s i o)
+  -> Effect (GameId s i)
 runGameM_ fps canvasElement { height, width } sprites gameSpecM =
   runGameM fps canvasElement { height, width } sprites gameSpecM \_ -> pure unit

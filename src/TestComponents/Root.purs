@@ -9,7 +9,7 @@ import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
 import Effect.Class (liftEffect)
 import Graphics.Canvas (PatternRepeat(..), TextAlign(..), TextBaseline(..))
-import Graphics.Glapple (Event(..), GameId, GameSpecM(..), KeyCode(..), KeyState(..), destroy, getMousePosition, renderGame, runChildGameM_, tell)
+import Graphics.Glapple (Event(..), GameId, GameSpecM(..), KeyCode(..), getMousePosition, renderGame, runChildGameM_, tell)
 import Graphics.Glapple.Data.Picture (DrawStyle(..), Font(..), FontFamily(..), FontStyle(..), FontWeight(..), Picture, Shape(..), arc, color, draw, fan, font, lineWidth, polygon, rect, rotate, scale, sprite, text, textAlign, textBaseLine, translate, (<-*), (<-+), (<-.), (<-^))
 import Graphics.Glapple.GlappleM (getGameState, modifyGameState)
 import TestComponents.Apple as Apple
@@ -21,9 +21,9 @@ import TestComponents.Sprites (Sprite(..))
 type GameState =
   { fps :: Number
   , rotating :: Boolean
-  , apple :: GameId Sprite Apple.Input Unit
-  , destroyTest :: GameId Sprite Unit Unit
-  , particle :: GameId Sprite ParticleTest.Input Unit
+  , apple :: GameId Sprite Apple.Input
+  , destroyTest :: GameId Sprite Unit
+  , particle :: GameId Sprite ParticleTest.Input
   }
 
 type Input = Unit
@@ -40,12 +40,11 @@ gameSpec = GameSpecM
   inputHandler _ = do
     { apple } <- getGameState
     liftEffect $ tell apple $ Apple.StartRotate
+    pure unit
 
   eventHandler = case _ of
     Update { deltaTime } -> modifyGameState $ \g@{ fps } -> g { fps = (1.0 / deltaTime) * 0.1 + fps * 0.9 }
-    KeyEvent { keyCode: Keyboard "KeyS", keyState: KeyDown } -> do
-      { destroyTest } <- getGameState
-      destroy destroyTest
+    KeyEvent { keyCode: Keyboard "KeyX" } -> pure unit
     _ -> pure unit
 
   initGameState = do

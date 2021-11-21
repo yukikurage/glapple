@@ -1,9 +1,9 @@
-module Graphics.Glapple.Data.Emitter (newEmitter, unregister, unregisterAll, register, fire, EmitterId, RegistrationId) where
+module Graphics.Glapple.Data.Emitter (newEmitter, unregister, unregisterAll, register, fire, EmitterId, RegistrationId, emitterSize) where
 
 import Prelude
 
 import Data.Foldable (for_)
-import Data.Map (Map, delete, empty, findMax, insert)
+import Data.Map (Map, delete, empty, findMax, insert, size)
 import Data.Maybe (Maybe(..))
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Ref (Ref, new, read, write)
@@ -53,3 +53,8 @@ unregister (RegistrationId (EmitterId emitterRef) key) = do
   let
     newE = delete key emitter
   liftEffect $ write newE emitterRef
+
+emitterSize :: forall m' i m. MonadEffect m => EmitterId m' i -> m Int
+emitterSize (EmitterId emitterRef) = do
+  emitter <- liftEffect $ read emitterRef
+  pure $ size emitter

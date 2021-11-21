@@ -12,19 +12,19 @@ import Graphics.Glapple.Data.GameSpecM (CanvasSpec)
 import Graphics.Glapple.GameRunnerM (runChildGameM_, runGameM_)
 
 runChildGame
-  :: forall s g i o childG childI childO
+  :: forall s g i o childG childI
    . GameSpec s childG childI
-  -> GlappleM s g i o (GameId s childI childO)
+  -> GlappleM s g i o (GameId s childI)
 runChildGame gameSpec = runChildGameM_ (mkGameSpecM gameSpec)
 
 runGame
-  :: forall sprite gameState input output
+  :: forall sprite gameState input
    . Ord sprite
-  => Int
+  => Number
   -> CanvasElement
   -> CanvasSpec
   -> Array (sprite /\ String)
   -> GameSpec sprite gameState input
-  -> Effect (GameId sprite input output)
+  -> Effect (GameId sprite input)
 runGame fps canvasElement canvasSpec sprites gameSpec =
   runGameM_ fps canvasElement canvasSpec sprites (mkGameSpecM gameSpec)

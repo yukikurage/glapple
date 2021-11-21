@@ -4,8 +4,8 @@ import Prelude
 
 import Effect.Class (liftEffect)
 import Effect.Random (random)
-import Graphics.Glapple (Event(..), GameSlot, GameSpecM(..), defaultHandler, destroyMe, getGameState, modifyGameState, putGameState, runGameSlot_)
-import Graphics.Glapple.Data.GameSlot (emptyGameSlot, renderGameSlot)
+import Graphics.Glapple (Event(..), GameId, GameSpecM(..), defaultHandler, destroy, getGameState, modifyGameState, putGameState, renderGame, runGameWithM_)
+import Graphics.Glapple.Data.GameId (emptyGameId)
 import Graphics.Glapple.Data.Picture (Picture, opacity, rotate, translate)
 import Math (pi)
 
@@ -15,13 +15,13 @@ gameSpec
   :: forall s o i'
    . Number
   -> Picture s
-  -> GameSpecM s { x :: Number, y :: Number, waitTime :: Number, particles :: GameSlot s i' } Input o
+  -> GameSpecM s { x :: Number, y :: Number, waitTime :: Number, particles :: GameId s i' } Input o
 gameSpec pps pic = GameSpecM
   { eventHandler
   , inputHandler
   , render
   , initGameState: do
-      particles <- emptyGameSlot
+      particles <- emptyGameId
       pure { waitTime: 0.0, particles, x: 0.0, y: 0.0 }
   }
   where
@@ -31,7 +31,7 @@ gameSpec pps pic = GameSpecM
       if (waitTime > 1.0 / pps) then do
         modifyGameState _ { waitTime = 0.0 }
         r <- liftEffect random
-        runGameSlot_ (gameSpecMonoParticle { ix: x, iy: y } (r * 2.0 * pi) pic) $ particles
+        runGameWithM_ (gameSpecMonoParticle { ix: x, iy: y } (r * 2.0 * pi) pic) $ particles
         pure unit
       else putGameState { x, y, waitTime: waitTime + deltaTime, particles }
     _ -> pure unit
@@ -39,7 +39,7 @@ gameSpec pps pic = GameSpecM
     { x, y } -> modifyGameState _ { x = x, y = y }
   render = do
     { particles } <- getGameState
-    pure $ renderGameSlot particles
+    pure $ renderGame particles
 
 -- | パーティクル1つ
 gameSpecMonoParticle
@@ -61,7 +61,7 @@ gameSpecMonoParticle { ix, iy } r pic = GameSpecM
     _ -> pure unit
   render = do
     { x, o } <- getGameState
-    when (o < 0.0) destroyMe
+    when (o < 0.0) destroy
     pure $ pic
       # translate x 0.0
       # rotate r

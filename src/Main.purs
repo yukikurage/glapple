@@ -18,7 +18,7 @@ main = do
   case canvasMaybe of
     Nothing -> pure unit
     Just canvas -> do
-      gameId <- runGameM_ 60 canvas { width: 320.0, height: 320.0 } sprites gameSpec
+      gameId <- runGameM_ 60.0 canvas { width: 320.0, height: 320.0 } sprites gameSpec
       runAff_ (const $ pure unit) do
         delay $ Milliseconds 3000.0
         liftEffect $ tell gameId $ unit

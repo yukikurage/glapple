@@ -10,7 +10,7 @@ import Data.Maybe (Maybe(..))
 import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
 import Effect.Aff (Aff, error, makeAff)
-import Effect.Class (liftEffect)
+import Effect.Class (class MonadEffect, liftEffect)
 import Graphics.Canvas (CanvasGradient, CanvasImageSource, CanvasPattern, Composite(..), Context2D, PatternRepeat, TextAlign, TextBaseline, Transform, addColorStop, beginPath, closePath, createLinearGradient, createPattern, createRadialGradient, drawImage, fill, lineTo, moveTo, restore, save, setGlobalAlpha, setGlobalCompositeOperation, setGradientFillStyle, setLineWidth, setPatternFillStyle, setTextAlign, setTextBaseline, stroke, tryLoadImage)
 import Graphics.Canvas as C
 
@@ -28,7 +28,14 @@ drawPicture
   -> (sprite -> Maybe CanvasImageSource)
   -> Picture sprite
   -> Aff Unit
-drawPicture ctx canvasImageSources (Picture f) = f ctx canvasImageSources
+drawPicture ctx canvasImageSources (Picture f) = do
+  f ctx canvasImageSources
+
+saveAndRestore :: forall m. MonadEffect m => Context2D -> m Unit -> m Unit
+saveAndRestore ctx f = do
+  liftEffect $ save ctx
+  f
+  liftEffect $ restore ctx
 
 -- | 画像の読み込み
 tryLoadImageAff :: String -> Aff CanvasImageSource
@@ -64,8 +71,10 @@ runShape :: Context2D -> Shape -> Effect Unit
 runShape ctx = case _ of
   Fill -> do
     fill ctx
+    beginPath ctx
   Stroke -> do
     stroke ctx
+    beginPath ctx
 
 foreign import setGradientStrokeStyle :: Context2D -> CanvasGradient -> Effect Unit
 foreign import setPatternStrokeStyle :: Context2D -> CanvasPattern -> Effect Unit
@@ -146,11 +155,8 @@ composite :: forall sprite. Composite -> Picture sprite -> Picture sprite -> Pic
 composite comp pic1 pic2 =
   Picture \ctx canvasImageSources -> do
     drawPicture ctx canvasImageSources pic1
-    liftEffect $ save ctx
     liftEffect $ setGlobalCompositeOperation ctx comp
-    liftEffect $ beginPath ctx --現在の描画の状態をリセット
     drawPicture ctx canvasImageSources pic2
-    liftEffect $ restore ctx
 
 sourceOverComposite :: forall s. Picture s -> Picture s -> Picture s
 sourceOverComposite = composite SourceOver
@@ -170,37 +176,17 @@ infixl 5 multiplyComposite as <-*
 infixl 5 addComposite as <-+
 
 translate :: forall s. Number -> Number -> Picture s -> Picture s
-translate x y pic = Picture \ctx canvasImageSources -> do
-  liftEffect $ save ctx
-  liftEffect $ C.translate ctx { translateX: x, translateY: y }
-  drawPicture ctx canvasImageSources pic
-  liftEffect $ restore ctx
+translate x y = operate (\ctx -> C.translate ctx { translateX: x, translateY: y })
 
 scale :: forall s. Number -> Number -> Picture s -> Picture s
-scale sx sy pic = Picture \ctx canvasImageSources -> do
-  liftEffect $ save ctx
-  liftEffect $ C.scale ctx { scaleX: sx, scaleY: sy }
-  drawPicture ctx canvasImageSources pic
-  liftEffect $ restore ctx
+scale sx sy = operate (\ctx -> C.scale ctx { scaleX: sx, scaleY: sy })
 
 -- | 右回転
 rotate :: forall s. Number -> Picture s -> Picture s
-rotate r pic = Picture \ctx canvasImageSources -> do
-  liftEffect $ save ctx
-  liftEffect $ C.rotate ctx r
-  drawPicture ctx canvasImageSources pic
-  liftEffect $ restore ctx
+rotate r = operate (flip C.rotate r)
 
-transform
-  :: forall s
-   . Transform
-  -> Picture s
-  -> Picture s
-transform trans pic = Picture \ctx canvasImageSources -> do
-  liftEffect $ save ctx
-  liftEffect $ C.transform ctx trans
-  drawPicture ctx canvasImageSources pic
-  liftEffect $ restore ctx
+transform :: forall s. Transform -> Picture s -> Picture s
+transform trans = operate (flip C.transform trans)
 
 ------------
 -- Shapes --
@@ -208,33 +194,25 @@ transform trans pic = Picture \ctx canvasImageSources -> do
 
 -- | Pictureに何らかのプロパティをつける
 operate :: forall s. (Context2D -> Effect Unit) -> Picture s -> Picture s
-operate f p = Picture \ctx img -> do
-  liftEffect $ save ctx
+operate f p = Picture \ctx img -> saveAndRestore ctx do
   liftEffect $ f ctx
   drawPicture ctx img p
-  liftEffect $ restore ctx
 
 empty :: forall sprite. Picture sprite
 empty = Picture \_ _ -> pure unit
 
 sprite :: forall sprite. sprite -> Picture sprite
-sprite spr = Picture \ctx canvasImageSources -> case canvasImageSources spr of
-  Nothing -> pure unit
-  Just x -> do
-    liftEffect $ drawImage ctx x 0.0 0.0
-
-image :: forall s. String -> Picture s
-image str = Picture \ctx _ -> do
-  imgSource <- tryLoadImageAff str
-  liftEffect $ drawImage ctx imgSource 0.0 0.0
+sprite spr = Picture \ctx canvasImageSources -> liftEffect do
+  case canvasImageSources spr of
+    Nothing -> pure unit
+    Just x -> do
+      drawImage ctx x 0.0 0.0
 
 -- | 色をつけます
 draw :: forall s. DrawStyle s -> Picture s -> Picture s
-draw drawStyle shape = Picture \ctx img -> do
-  liftEffect $ save ctx
+draw drawStyle shape = Picture \ctx img -> saveAndRestore ctx do
   liftEffect $ setDrawStyle ctx img drawStyle
   drawPicture ctx img shape
-  liftEffect $ restore ctx
 
 opacity :: forall s. Number -> Picture s -> Picture s
 opacity o = operate (flip setGlobalAlpha o)
@@ -259,8 +237,9 @@ text
    . Shape
   -> String
   -> Picture sprite
-text style str = Picture \ctx _ -> liftEffect do
+text style str = Picture \ctx _ -> saveAndRestore ctx $liftEffect $ do
   save ctx
+  beginPath ctx
   case style of
     Fill -> do
       C.fillText ctx str 0.0 0.0
@@ -273,33 +252,27 @@ polygon
    . Shape
   -> Array (Number /\ Number)
   -> Picture sprite
-polygon style path = Picture \ctx _ -> liftEffect do
-  save ctx
+polygon style path = Picture \ctx _ -> saveAndRestore ctx $ liftEffect do
   case uncons path of
     Just { head: (hx /\ hy), tail } -> do
-      beginPath ctx
       moveTo ctx hx hy
       for_ tail \(x /\ y) -> lineTo ctx x y
       closePath ctx
     Nothing -> pure unit
   runShape ctx style
-  restore ctx
 
 line
   :: forall sprite
    . Array (Number /\ Number)
   -> Picture sprite
-line path = Picture \ctx _ -> liftEffect do
-  save ctx
+line path = Picture \ctx _ -> saveAndRestore ctx $ liftEffect do
   case uncons path of
     Just { head: (hx /\ hy), tail } -> do
-      beginPath ctx
       moveTo ctx hx hy
       for_ tail \(x /\ y) -> lineTo ctx x y
       closePath ctx
     Nothing -> pure unit
   runShape ctx $ Stroke
-  restore ctx
 
 rect
   :: forall s
@@ -307,22 +280,17 @@ rect
   -> Number
   -> Number
   -> Picture s
-rect style height width = Picture \ctx _ -> liftEffect do
-  save ctx
+rect style height width = Picture \ctx _ -> saveAndRestore ctx $ liftEffect do
   C.rect ctx { x: 0.0, y: 0.0, height, width }
   runShape ctx style
-  restore ctx
 
 arc :: forall s. { start :: Number, end :: Number, radius :: Number } -> Picture s
-arc { start, end, radius } = Picture \ctx _ -> liftEffect $ do
-  save ctx
+arc { start, end, radius } = Picture \ctx _ -> saveAndRestore ctx $ liftEffect do
   C.arc ctx { x: 0.0, y: 0.0, start, end, radius }
   runShape ctx $ Stroke
-  restore ctx
 
 fan :: forall s. Shape -> { start :: Number, end :: Number, radius :: Number } -> Picture s
-fan style { radius, start, end } = Picture \ctx _ -> liftEffect do
-  save ctx
+fan style { radius, start, end } = Picture \ctx _ -> saveAndRestore ctx $ liftEffect do
   moveTo ctx 0.0 0.0
   C.arc ctx { x: 0.0, y: 0.0, start, end, radius }
   closePath ctx

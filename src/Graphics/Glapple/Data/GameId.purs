@@ -8,39 +8,41 @@ import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Graphics.Canvas (CanvasImageSource, Context2D)
-import Graphics.Glapple.Data.Emitter (EmitterId, fire)
-import Graphics.Glapple.Data.InternalRegistrationIds (InternalRegistrationIds, unregisterGame)
+import Graphics.Glapple.Data.Emitter (EmitterId, fire, newEmitter)
 import Graphics.Glapple.Data.Picture (Picture(..))
 
 -- | ゲームを指し示すIDです．
 -- | これを使って外部からゲームに指示できます．
-data GameId s i o =
+data GameId s i =
   GameId
     { inputEmitter :: EmitterId Effect i --Input EmitterはInputを取る必要がある
     , renderEmitter ::
         EmitterId Aff
           { canvasImageSources :: s -> Maybe CanvasImageSource
           , context2D :: Context2D
-          } --Render EmitterもgameStateを取る必要があるのでは？
-    , internalRegistrationIds :: InternalRegistrationIds s i o
+          }
     }
 
 -- | GameIdで表されるゲームにInputを発火させます
 tell
-  :: forall s i o m
+  :: forall s i m
    . MonadEffect m
-  => GameId s i o
+  => GameId s i
   -> i
   -> m Unit
-tell (GameId { inputEmitter }) input = liftEffect $ fire inputEmitter input
+tell (GameId { inputEmitter }) input = liftEffect $ fire inputEmitter $ input
 
 -- | GameIdで表されるゲームの状態を描画
 renderGame
-  :: forall s i o
-   . GameId s i o
+  :: forall s i
+   . GameId s i
   -> Picture s
-renderGame (GameId { renderEmitter }) = Picture \context2D canvasImageSources ->
-  fire renderEmitter { context2D, canvasImageSources }
+renderGame (GameId { renderEmitter }) =
+  Picture \context2D canvasImageSources ->
+    fire renderEmitter { context2D, canvasImageSources }
 
-destroy :: forall m s i o. MonadEffect m => GameId s i o -> m Unit
-destroy (GameId { internalRegistrationIds }) = unregisterGame internalRegistrationIds
+emptyGameId :: forall m s i. Bind m => MonadEffect m => m (GameId s i)
+emptyGameId = do
+  inputEmitter <- newEmitter
+  renderEmitter <- newEmitter
+  pure $ GameId { inputEmitter, renderEmitter }
