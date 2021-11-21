@@ -2,7 +2,7 @@ module TestComponents.DestroyTest where
 
 import Prelude
 
-import Graphics.Glapple (Event(..), GameSpecM(..), KeyCode(..), KeyState(..), defaultHandler, destroy, getGameState, getKeyState, mkInitGameStateM, putGameState)
+import Graphics.Glapple (Event(..), GameSpecM(..), KeyCode(..), KeyState(..), defaultHandler, destroy, getGameState, getKeyState, putGameState)
 import Graphics.Glapple.Data.Picture (rotate, sprite, translate)
 import Math (pi)
 import TestComponents.Sprites (Sprite(..))
@@ -16,11 +16,12 @@ gameSpec = GameSpecM
   { eventHandler
   , inputHandler: defaultHandler
   , render
-  , initGameState: mkInitGameStateM { x: 0.0 }
+  , initGameState: pure { x: 0.0 }
   }
   where
   eventHandler = case _ of
     Update { deltaTime } -> do
+      destroy --何回か成功しない(ログにでる？)
       { x } <- getGameState
       d <- getKeyState $ Keyboard "KeyD"
       when d $ putGameState $ { x: x + deltaTime * 80.0 }

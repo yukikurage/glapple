@@ -346,7 +346,7 @@ runGameM
       let
         Milliseconds dt = diff procEnd procStart
 
-      delay $ Milliseconds $ max 0.0 $ 1000.0 / fps - dt
+      delay $ Milliseconds $ max 10.0 $ 1000.0 / fps - dt
 
   pure $ gameId
 

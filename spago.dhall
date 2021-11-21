@@ -18,7 +18,6 @@ to generate this file without the comments in this block.
   , "colors"
   , "console"
   , "datetime"
-  , "debug"
   , "effect"
   , "either"
   , "exceptions"
