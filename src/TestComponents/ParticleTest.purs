@@ -8,7 +8,7 @@ import Graphics.Canvas (Transform)
 import Graphics.Glapple (Event(..), GameId, GameSpecM(..), defaultHandler, destroy, getGameState, modifyGameState, putGameState, renderGame, runGameWithM_)
 import Graphics.Glapple.Data.GameId (emptyGameId)
 import Graphics.Glapple.Data.Picture (Picture, absolute, opacity, rotate, transform, translate)
-import Graphics.GlappleEx.RefTransform (refTransform)
+import Graphics.GlappleEx.Utils (refTransform)
 import Math (pi)
 
 gameSpec

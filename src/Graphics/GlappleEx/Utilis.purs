@@ -1,4 +1,4 @@
-module Graphics.GlappleEx.RefTransform where
+module Graphics.GlappleEx.Utils where
 
 import Prelude
 
