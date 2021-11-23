@@ -14,4 +14,4 @@ import Graphics.Glapple.Data.GameSpec (GameSpec(..), mkRenderM, mkHandlerM, mkGa
 import Graphics.Glapple.Data.GameSpecM (GameSpecM(..), CanvasSpec, defaultRender, defaultHandler) as GameSpecM
 import Graphics.Glapple.GameRunner (runGame, runChildGame) as GameRunner
 import Graphics.Glapple.GameRunnerM (runChildGameM, runChildGameM_, runGameM, runGameM_, runGameWithM_, runGameWithM) as GameRunnerM
-import Graphics.Glapple.GlappleM (getGameState, modifyGameState, putGameState, getTotalTime, raise, destroy, getKeyState, getMousePosition, GlappleM, break) as GlappleM
+import Graphics.Glapple.GlappleM (getGameState, modifyGameState, putGameState, getGlobalTime, getLocalTime, raise, destroy, getKeyState, getMousePosition, GlappleM, break) as GlappleM

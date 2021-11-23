@@ -39,6 +39,8 @@ module Graphics.Glapple.Data.Picture
   , (<-+)
   , (<-.)
   , (<-^)
+  , translateToTransform
+  , angleToTransform
   ) where
 
 import Prelude
@@ -54,7 +56,7 @@ import Effect.Aff (Aff, error, makeAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Graphics.Canvas (CanvasGradient, CanvasImageSource, CanvasPattern, Composite(..), Context2D, PatternRepeat, TextAlign, TextBaseline, Transform, addColorStop, beginPath, closePath, createLinearGradient, createPattern, createRadialGradient, drawImage, fill, lineTo, moveTo, restore, save, setGlobalAlpha, setGlobalCompositeOperation, setGradientFillStyle, setLineWidth, setPatternFillStyle, setTextAlign, setTextBaseline, setTransform, stroke, tryLoadImage)
 import Graphics.Canvas as C
-import Math (floor, pi)
+import Math (cos, floor, pi, sin)
 
 newtype Picture sprite = Picture (Context2D -> (sprite -> Maybe CanvasImageSource) -> Aff Unit)
 
@@ -401,3 +403,13 @@ fan style { radius, start, angle } = Picture \ctx _ -> saveAndRestore ctx $ lift
   C.arc ctx { x: 0.0, y: 0.0, start: start', end, radius }
   closePath ctx
   runShape ctx style
+
+---------------------------
+-- Transform Computation --
+---------------------------
+
+angleToTransform :: Number -> Transform
+angleToTransform x = { m11: cos x, m12: sin x, m21: -sin x, m22: cos x, m31: 0.0, m32: 0.0 }
+
+translateToTransform :: Number -> Number -> Transform
+translateToTransform x y ={ m11: 1.0, m12: 0.0, m21: 0.0, m22: 1.0, m31: x, m32: y }

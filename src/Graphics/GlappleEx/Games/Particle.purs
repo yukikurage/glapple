@@ -1,11 +1,12 @@
-module Graphics.Glapple.Games.Particle where
+module Graphics.GlappleEx.Games.Particle where
 
 import Prelude
 
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe, fromMaybe)
 import Effect.Class (liftEffect)
 import Effect.Random (random)
-import Graphics.Glapple (Event(..), GameId, GameSpecM(..), defaultHandler, destroy, emptyGameId, getGameState, modifyGameState, putGameState, renderGame, runGameWithM_)
+import Graphics.Glapple (Event(..), GameId, GameSpecM(..), defaultHandler, destroy, emptyGameId, getGameState, getLocalTime, modifyGameState, putGameState, renderGame, runGameWithM_)
+import Graphics.Glapple.Data.GameId (null)
 import Graphics.Glapple.Data.Picture (Picture, opacity, rotate, translate)
 import Graphics.GlappleEx.HOGs.Fixer (fixer)
 import Graphics.GlappleEx.Utils (refTransform)
@@ -15,40 +16,39 @@ gameSpec
   :: forall s o i i'
    . { perSecond :: Number, life :: Number, spread :: Number, continue :: Maybe Number }
   -> Picture s
-  -> GameSpecM s { waitTime :: Number, particles :: GameId s i', gameTime :: Number } i o
+  -> GameSpecM s { waitTime :: Number, particles :: GameId s i' } i o
 gameSpec { perSecond, life, spread, continue } pic = GameSpecM
   { eventHandler
   , inputHandler: defaultHandler
   , render
   , initGameState: do
       particles <- emptyGameId
-      pure { waitTime: 0.0, particles, gameTime: 0.0 }
+      pure { waitTime: 0.0, particles }
   }
   where
   eventHandler = case _ of
     Update { deltaTime } -> do
-      { waitTime, particles, gameTime } <- getGameState
-      putGameState { waitTime: waitTime + deltaTime, particles, gameTime: gameTime + deltaTime }
-      case continue of
-        Just x -> when (gameTime > x) destroy
-        Nothing -> pure unit
+      { waitTime, particles } <- getGameState
+      putGameState { waitTime: waitTime + deltaTime, particles }
+      localTime <- getLocalTime
+      frag <- null particles
+      when (frag && fromMaybe false ((\c -> localTime > c) <$> continue)) destroy
     _ -> pure unit
   render = refTransform \t -> do
     { waitTime, particles } <- getGameState
+    localTime <- getLocalTime
 
-    when (waitTime > 1.0 / perSecond) do
+    when (waitTime > 1.0 / perSecond && fromMaybe true ((\c -> localTime < c) <$> continue)) do
       modifyGameState _ { waitTime = 0.0 }
       r <- liftEffect random
       r' <- liftEffect random
-      runGameWithM_
-        ( fixer t $ gameSpecMonoParticle
-            { direction: r * 2.0 * pi
-            , angle: r' * 2.0 * pi
-            , life
-            , spread
-            }
-            pic
-        ) $ particles
+      runGameWithM_ particles $ fixer t $ gameSpecMonoParticle
+        { direction: r * 2.0 * pi
+        , angle: r' * 2.0 * pi
+        , life
+        , spread
+        }
+        pic
 
     pure $ renderGame particles
 

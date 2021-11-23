@@ -5,16 +5,17 @@ import Prelude
 
 import Color (rgb', rgba')
 import Data.Int (floor)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
 import Effect.Class (liftEffect)
 import Graphics.Canvas (PatternRepeat(..), TextAlign(..), TextBaseline(..))
-import Graphics.Glapple (Event(..), GameId, GameSpecM(..), KeyCode(..), getGameState, getMousePosition, modifyGameState, renderGame, runChildGameM_, tell)
-import Graphics.Glapple.Data.Picture (DrawStyle(..), Font(..), FontFamily(..), FontStyle(..), FontWeight(..), Picture, Shape(..), arc, color, empty, fan, font, lineWidth, paint, polygon, rect, rotate, scale, sprite, text, textAlign, textBaseLine, translate, (<-*), (<-+), (<-.), (<-^))
+import Graphics.Glapple (Event(..), GameId, GameSpecM(..), KeyCode(..), KeyState(..), MouseButton(..), break, emptyGameId, getGameState, getMousePosition, modifyGameState, renderGame, runChildGameM_, runGameWithM_, tell)
+import Graphics.Glapple.Data.Picture (DrawStyle(..), Font(..), FontFamily(..), FontStyle(..), FontWeight(..), Picture, Shape(..), arc, color, empty, fan, font, lineWidth, paint, polygon, rect, rotate, scale, sprite, text, textAlign, textBaseLine, translate, translateToTransform, (<-*), (<-+), (<-.), (<-^))
+import Graphics.GlappleEx.Games.Particle as Particle
+import Graphics.GlappleEx.HOGs.Fixer (fixer)
 import TestComponents.Apple as Apple
 import TestComponents.DestroyTest as DestroyTest
-import TestComponents.ParticleTest as ParticleTest
 import TestComponents.Sprites (Sprite(..))
 
 -- テスト用のゲーム
@@ -43,17 +44,24 @@ gameSpec = GameSpecM
     pure unit
 
   eventHandler = case _ of
-    Update { deltaTime } -> modifyGameState $ \g@{ fps } -> g { fps = (1.0 / deltaTime) * 0.1 + fps * 0.9 }
+    Update { deltaTime } -> modifyGameState
+      $ \g@{ fps } -> g { fps = (1.0 / deltaTime) * 0.1 + fps * 0.9 }
     KeyEvent { keyCode: Keyboard "KeyX" } -> pure unit
+    KeyEvent { keyCode: Mouse Left, keyState: KeyDown } -> do
+      { particle } <- getGameState
+      mousePosMaybe <- getMousePosition
+      { mouseX, mouseY } <- maybe break pure mousePosMaybe
+      runGameWithM_ particle
+        $ fixer (translateToTransform mouseX mouseY)
+        $ Particle.gameSpec
+            { perSecond: 120.0, continue: Just 0.1, life: 0.4, spread: 20.0 }
+        $ sprite Apple # translate (-16.0) (-16.0) # scale 1.0 1.0
     _ -> pure unit
 
   initGameState = do
     apple <- runChildGameM_ Apple.gameSpec
     destroyTest <- runChildGameM_ DestroyTest.gameSpec
-    particle <- runChildGameM_ $ ParticleTest.gameSpec 30.0
-      $ scale 0.5 0.5
-      $ translate (-16.0) (-16.0)
-      $ sprite Apple
+    particle <- emptyGameId
     pure { fps: 0.0, rotating: false, apple, destroyTest, particle }
 
   render = do
@@ -85,8 +93,7 @@ gameSpec = GameSpecM
         <-+ testFan
         <-^ renderGame destroyTest
         <-^ particlePic
-
--- <-^ sprite ArcTest
+        <-^ sprite ArcTest
 
 testPolygon :: forall sprite. Picture sprite
 testPolygon = polygon Fill polyData

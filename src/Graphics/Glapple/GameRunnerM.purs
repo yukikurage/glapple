@@ -73,6 +73,7 @@ runChildGameM (GameSpecM { initGameState, render, eventHandler, inputHandler }) 
   internalState@{ eventEmitter, initTimeRef, keyStateRef, mousePositionRef } <- ask
   gameStateRef <- liftEffect $ new Nothing
   internalRegistrationIdsRef <- liftEffect $ new Nothing
+  localInitTimeRef <- liftEffect $ new Nothing
 
   inputEmitter <- newEmitter
   outputEmitter <- newEmitter
@@ -83,6 +84,7 @@ runChildGameM (GameSpecM { initGameState, render, eventHandler, inputHandler }) 
       { eventEmitter
       , outputEmitter
       , initTimeRef
+      , localInitTimeRef
       , gameStateRef
       , internalRegistrationIdsRef
       , keyStateRef
@@ -112,6 +114,9 @@ runChildGameM (GameSpecM { initGameState, render, eventHandler, inputHandler }) 
 
   when (res == Nothing) $ log "Glapple Warning: Game initialization failed, possibly due to the use of functions such as getState in initGameState."
 
+  time <- liftEffect nowTime
+  liftEffect $ write (Just time) localInitTimeRef
+
   pure gameId
 
 runChildGameM_
@@ -127,14 +132,15 @@ runChildGameM_ gameSpecM = runChildGameM gameSpecM \_ -> pure unit
 -- | Add a Game to the GameId.
 runGameWithM
   :: forall s g i o childG childI childO
-   . GameSpecM s childG childI childO
-  -> GameId s childI
+   . GameId s childI
+  -> GameSpecM s childG childI childO
   -> (childO -> GlappleM s g i o Unit)
   -> GlappleM s g i o Unit
-runGameWithM (GameSpecM { initGameState, render, eventHandler, inputHandler }) (GameId { inputEmitter, renderEmitter }) outputHandler = do
+runGameWithM (GameId { inputEmitter, renderEmitter }) (GameSpecM { initGameState, render, eventHandler, inputHandler }) outputHandler = do
   internalState@{ eventEmitter, initTimeRef, keyStateRef, mousePositionRef } <- ask
   gameStateRef <- liftEffect $ new Nothing
   internalRegistrationIdsRef <- liftEffect $ new Nothing
+  localInitTimeRef <- liftEffect $ new Nothing
 
   outputEmitter <- newEmitter
 
@@ -147,6 +153,7 @@ runGameWithM (GameSpecM { initGameState, render, eventHandler, inputHandler }) (
       , internalRegistrationIdsRef
       , keyStateRef
       , mousePositionRef
+      , localInitTimeRef
       }
 
   let
@@ -171,14 +178,16 @@ runGameWithM (GameSpecM { initGameState, render, eventHandler, inputHandler }) (
 
   when (res == Nothing) $ log "Glapple Warning: Game initialization failed, possibly due to the use of functions such as getState in initGameState."
 
+  time <- liftEffect nowTime
+  liftEffect $ write (Just time) localInitTimeRef
   pure unit
 
 runGameWithM_
   :: forall s g i o childG childI childO
-   . GameSpecM s childG childI childO
-  -> GameId s childI
+   . GameId s childI
+  -> GameSpecM s childG childI childO
   -> GlappleM s g i o Unit
-runGameWithM_ gameSpecM gameSlot = runGameWithM gameSpecM gameSlot \_ -> pure unit
+runGameWithM_ gameId gameSpecM = runGameWithM gameId gameSpecM \_ -> pure unit
 
 --------------
 -- Run Game --
@@ -216,6 +225,7 @@ runGameM
   internalRegistrationIdsRef <- new Nothing
   keyStateRef <- new mempty
   mousePositionRef <- new Nothing
+  localInitTimeRef <- new Nothing
 
   -- Emitterを作成
   inputEmitter <- newEmitter
@@ -232,6 +242,7 @@ runGameM
       , internalRegistrationIdsRef
       , keyStateRef
       , mousePositionRef
+      , localInitTimeRef
       }
 
     inputHandler_ = makeHandlerEffect internalState inputHandler
@@ -361,6 +372,8 @@ runGameM
 
     initTime <- liftEffect $ nowTime
     liftEffect $ write (Just initTime) initTimeRef --ゲーム開始時の時刻を保存
+    liftEffect $ write (Just initTime) localInitTimeRef
+
     deltaTimeRef <- liftEffect $ new initTime --更新時のdelta Time取得に使うRef
 
     forever $ do

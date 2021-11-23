@@ -21,7 +21,8 @@ import Graphics.Glapple.Data.InternalRegistrationIds (InternalRegistrationIds, u
 type InternalState (s :: Type) g (i :: Type) o =
   { eventEmitter :: EmitterId Effect Event
   , outputEmitter :: EmitterId Effect o
-  , initTimeRef :: Ref (Maybe Time) --ゲーム開始時の時刻
+  , initTimeRef :: Ref (Maybe Time) --ルートゲーム開始時の時刻
+  , localInitTimeRef :: Ref (Maybe Time) --ゲームがrunされた時刻
   , gameStateRef :: Ref (Maybe g) --ゲームの状態を保存(ゲーム開始前はNothing)
   , internalRegistrationIdsRef :: Ref (Maybe (InternalRegistrationIds s i o)) --ゲームのregistrationIdを保存
   , keyStateRef :: Ref (Set KeyCode) --現在押されているキーのSet
@@ -71,12 +72,26 @@ modifyGameState f = do
   { gameStateRef } <- ask
   liftEffect $ modify_ (map f) gameStateRef
 
-getTotalTime
+getGlobalTime
   :: forall s g i o
    . GlappleM s g i o Number
-getTotalTime = do
+getGlobalTime = do
   { initTimeRef } <- ask
   initTimeMaybe <- liftEffect $ read initTimeRef
+  nowT <- liftEffect $ nowTime
+  let
+    f initTime = t / 1000.0
+      where
+      Milliseconds t = diff nowT initTime
+    totalTime = map f initTimeMaybe
+  GlappleM $ lift $ MaybeT $ pure totalTime
+
+getLocalTime
+  :: forall s g i o
+   . GlappleM s g i o Number
+getLocalTime = do
+  { localInitTimeRef } <- ask
+  initTimeMaybe <- liftEffect $ read localInitTimeRef
   nowT <- liftEffect $ nowTime
   let
     f initTime = t / 1000.0
