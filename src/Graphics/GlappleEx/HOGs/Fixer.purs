@@ -3,8 +3,7 @@ module Graphics.GlappleEx.HOGs.Fixer where
 import Prelude
 
 import Graphics.Canvas (Transform)
-import Graphics.Glapple (Event(..), GameId, GameSpecM(..), destroy, getGameState, raise, renderGame, runChildGameM, tell)
-import Graphics.Glapple.Data.GameId (null)
+import Graphics.Glapple (Event(..), GameId, GameSpecM(..), destroy, getGameState, null, raise, renderGame, runChildGameM, tell)
 import Graphics.Glapple.Data.Picture (absolute, transform)
 
 -- | Fix the game with the given Transform
