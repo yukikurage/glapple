@@ -4,51 +4,48 @@ import Prelude
 
 import Effect.Class (liftEffect)
 import Effect.Random (random)
+import Graphics.Canvas (Transform)
 import Graphics.Glapple (Event(..), GameId, GameSpecM(..), defaultHandler, destroy, getGameState, modifyGameState, putGameState, renderGame, runGameWithM_)
 import Graphics.Glapple.Data.GameId (emptyGameId)
-import Graphics.Glapple.Data.Picture (Picture, opacity, rotate, translate)
+import Graphics.Glapple.Data.Picture (Picture, absolute, opacity, rotate, transform, translate)
+import Graphics.GlappleEx.RefTransform (refTransform)
 import Math (pi)
 
-type Input = { x :: Number, y :: Number }
-
 gameSpec
-  :: forall s o i'
+  :: forall s o i i'
    . Number
   -> Picture s
-  -> GameSpecM s { x :: Number, y :: Number, waitTime :: Number, particles :: GameId s i' } Input o
+  -> GameSpecM s { waitTime :: Number, particles :: GameId s i' } i o
 gameSpec pps pic = GameSpecM
   { eventHandler
-  , inputHandler
+  , inputHandler: defaultHandler
   , render
   , initGameState: do
       particles <- emptyGameId
-      pure { waitTime: 0.0, particles, x: 0.0, y: 0.0 }
+      pure { waitTime: 0.0, particles }
   }
   where
   eventHandler = case _ of
     Update { deltaTime } -> do
-      { x, y, waitTime, particles } <- getGameState
-      if (waitTime > 1.0 / pps) then do
-        modifyGameState _ { waitTime = 0.0 }
-        r <- liftEffect random
-        runGameWithM_ (gameSpecMonoParticle { ix: x, iy: y } (r * 2.0 * pi) pic) $ particles
-        pure unit
-      else putGameState { x, y, waitTime: waitTime + deltaTime, particles }
+      { waitTime, particles } <- getGameState
+      putGameState { waitTime: waitTime + deltaTime, particles }
     _ -> pure unit
-  inputHandler = case _ of
-    { x, y } -> modifyGameState _ { x = x, y = y }
-  render = do
-    { particles } <- getGameState
+  render = refTransform \t -> do
+    { waitTime, particles } <- getGameState
+    when (waitTime > 1.0 / pps) do
+      modifyGameState _ { waitTime = 0.0 }
+      r <- liftEffect random
+      runGameWithM_ (gameSpecMonoParticle t (r * 2.0 * pi) pic) $ particles
     pure $ renderGame particles
 
 -- | パーティクル1つ
 gameSpecMonoParticle
   :: forall s i o
-   . { ix :: Number, iy :: Number }
+   . Transform
   -> Number
   -> Picture s
   -> GameSpecM s { o :: Number, x :: Number } i o
-gameSpecMonoParticle { ix, iy } r pic = GameSpecM
+gameSpecMonoParticle t r pic = GameSpecM
   { eventHandler
   , inputHandler: defaultHandler
   , render
@@ -65,5 +62,6 @@ gameSpecMonoParticle { ix, iy } r pic = GameSpecM
     pure $ pic
       # translate x 0.0
       # rotate r
-      # translate ix iy
+      # transform t
       # opacity o
+      # absolute

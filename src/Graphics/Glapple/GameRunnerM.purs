@@ -36,6 +36,8 @@ import Web.UIEvent.KeyboardEvent.EventTypes (keydown, keyup)
 import Web.UIEvent.MouseEvent as MouseEvent
 import Web.UIEvent.MouseEvent.EventTypes (mousedown, mousemove, mouseup)
 
+-- ToDo: 共通している処理が多いのでどうにかする
+
 --------------------
 -- Run Child Game --
 --------------------
@@ -206,7 +208,7 @@ runGameM
   initTimeRef <- new Nothing
   internalRegistrationIdsRef <- new Nothing
   keyStateRef <- new mempty
-  mousePositionRef <- new { mouseX: 0.0, mouseY: 0.0 }
+  mousePositionRef <- new Nothing
 
   -- Emitterを作成
   inputEmitter <- newEmitter
@@ -310,7 +312,7 @@ runGameM
         mouseX = toNumber (MouseEvent.clientX mouseE) - left
         mouseY = toNumber (MouseEvent.clientY mouseE) - top
       fire eventEmitter (MouseMove { mouseX, mouseY })
-      write { mouseX, mouseY } mousePositionRef
+      write (Just { mouseX, mouseY }) mousePositionRef
     _ -> pure unit
   addEventListener mousemove mouseMoveHandler false w
 

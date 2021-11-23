@@ -15,3 +15,10 @@ exports.setPatternStrokeStyle = function(ctx) {
       };
   };
 };
+
+exports.getTransform = function(ctx) {
+  const t = ctx.getTransform()
+  return function() {
+    return {m11: t.a, m12: t.b, m21: t.c, m22: t.d, m31: t.e, m32: t.f}
+  }
+}

@@ -1,4 +1,45 @@
-module Graphics.Glapple.Data.Picture where
+module Graphics.Glapple.Data.Picture
+  ( Picture
+  , DrawStyle(..)
+  , Shape(..)
+  , FontStyle(..)
+  , FontWeight(..)
+  , FontFamily(..)
+  , Font(..)
+  , drawPicture
+  , tryLoadImageAff
+  , transform
+  , absorb'
+  , empty
+  , rotate
+  , absolute
+  , arc
+  , addComposite
+  , color
+  , destinationOverComposite
+  , drawWithTransform
+  , fan
+  , font
+  , line
+  , lineWidth
+  , multiplyComposite
+  , opacity
+  , polygon
+  , rect
+  , scale
+  , sourceOverComposite
+  , sprite
+  , text
+  , textAlign
+  , textBaseLine
+  , translate
+  , paint
+  , absorb
+  , (<-*)
+  , (<-+)
+  , (<-.)
+  , (<-^)
+  ) where
 
 import Prelude
 
@@ -11,7 +52,7 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
 import Effect.Aff (Aff, error, makeAff)
 import Effect.Class (class MonadEffect, liftEffect)
-import Graphics.Canvas (CanvasGradient, CanvasImageSource, CanvasPattern, Composite(..), Context2D, PatternRepeat, TextAlign, TextBaseline, Transform, addColorStop, beginPath, closePath, createLinearGradient, createPattern, createRadialGradient, drawImage, fill, lineTo, moveTo, restore, save, setGlobalAlpha, setGlobalCompositeOperation, setGradientFillStyle, setLineWidth, setPatternFillStyle, setTextAlign, setTextBaseline, stroke, tryLoadImage)
+import Graphics.Canvas (CanvasGradient, CanvasImageSource, CanvasPattern, Composite(..), Context2D, PatternRepeat, TextAlign, TextBaseline, Transform, addColorStop, beginPath, closePath, createLinearGradient, createPattern, createRadialGradient, drawImage, fill, lineTo, moveTo, restore, save, setGlobalAlpha, setGlobalCompositeOperation, setGradientFillStyle, setLineWidth, setPatternFillStyle, setTextAlign, setTextBaseline, setTransform, stroke, tryLoadImage)
 import Graphics.Canvas as C
 
 newtype Picture sprite = Picture (Context2D -> (sprite -> Maybe CanvasImageSource) -> Aff Unit)
@@ -78,6 +119,7 @@ runShape ctx = case _ of
 
 foreign import setGradientStrokeStyle :: Context2D -> CanvasGradient -> Effect Unit
 foreign import setPatternStrokeStyle :: Context2D -> CanvasPattern -> Effect Unit
+foreign import getTransform :: Context2D -> Effect Transform
 
 setDrawStyle :: forall s. Context2D -> (s -> Maybe CanvasImageSource) -> DrawStyle s -> Effect Unit
 setDrawStyle ctx canvasImageSources = case _ of
@@ -151,6 +193,9 @@ setFont ctx (Font { fontStyle, fontWeight, fontSize, fontHeight, fontFamily }) =
 -- Picture Operations --
 ------------------------
 
+-- | 指定された合成方法で画像を合成
+-- | 問題点: 合成した画像の合成が予想外の動作をする．
+-- | ex) x <-+ (y <-^ z) = (x <-+ y) <-^ z --本来左辺はyとzの合成がxに対しLighterで作用して欲しい
 composite :: forall sprite. Composite -> Picture sprite -> Picture sprite -> Picture sprite
 composite comp pic1 pic2 =
   Picture \ctx canvasImageSources -> do
@@ -189,6 +234,32 @@ transform :: forall s. Transform -> Picture s -> Picture s
 transform trans = operate (flip C.transform trans)
 
 ------------
+-- Magics --
+------------
+
+-- | 生成されたPictureが描画された段階でのTransformを取得して描画できます．
+drawWithTransform :: forall s. (Transform -> Picture s) -> Picture s
+drawWithTransform f = Picture \ctx img -> do
+  t <- liftEffect $ getTransform ctx
+  drawPicture ctx img $ f t
+
+-- | absorbにContext2DとCanvasImageSourcesを渡します．非推奨．
+absorb' :: forall s. (Context2D -> (s -> Maybe CanvasImageSource) -> Aff (Picture s)) -> Picture s
+absorb' affPic = Picture \ctx img -> do
+  pic <- affPic ctx img
+  drawPicture ctx img pic
+
+-- | Affの作用をPictureの中に埋め込みます．
+absorb :: forall s. Aff (Picture s) -> Picture s
+absorb affPic = Picture \ctx img -> do
+  pic <- affPic
+  drawPicture ctx img pic
+
+-- | この親のtransformを無効化し，強制的に原点から描画します．多用は非推奨
+absolute :: forall s. Picture s -> Picture s
+absolute = operate (flip setTransform { m11: 1.0, m12: 0.0, m21: 0.0, m22: 1.0, m31: 0.0, m32: 0.0 })
+
+------------
 -- Shapes --
 ------------
 
@@ -209,8 +280,8 @@ sprite spr = Picture \ctx canvasImageSources -> liftEffect do
       drawImage ctx x 0.0 0.0
 
 -- | 色をつけます
-draw :: forall s. DrawStyle s -> Picture s -> Picture s
-draw drawStyle shape = Picture \ctx img -> saveAndRestore ctx do
+paint :: forall s. DrawStyle s -> Picture s -> Picture s
+paint drawStyle shape = Picture \ctx img -> saveAndRestore ctx do
   liftEffect $ setDrawStyle ctx img drawStyle
   drawPicture ctx img shape
 
@@ -218,7 +289,7 @@ opacity :: forall s. Number -> Picture s -> Picture s
 opacity o = operate (flip setGlobalAlpha o)
 
 color :: forall s. Color -> Picture s -> Picture s
-color c s = draw (MonoColor c) s
+color c s = paint (MonoColor c) s
 
 textAlign :: forall s. TextAlign -> Picture s -> Picture s
 textAlign a = operate (flip setTextAlign a)
@@ -237,7 +308,7 @@ text
    . Shape
   -> String
   -> Picture sprite
-text style str = Picture \ctx _ -> saveAndRestore ctx $liftEffect $ do
+text style str = Picture \ctx _ -> saveAndRestore ctx $ liftEffect $ do
   save ctx
   beginPath ctx
   case style of

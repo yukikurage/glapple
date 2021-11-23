@@ -9,7 +9,7 @@ import Effect.Aff (Aff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Graphics.Canvas (CanvasImageSource, Context2D)
 import Graphics.Glapple.Data.Emitter (EmitterId, fire, newEmitter)
-import Graphics.Glapple.Data.Picture (Picture(..))
+import Graphics.Glapple.Data.Picture (Picture, absorb', empty)
 
 -- | ゲームを指し示すIDです．
 -- | これを使って外部からゲームに指示できます．
@@ -37,9 +37,9 @@ renderGame
   :: forall s i
    . GameId s i
   -> Picture s
-renderGame (GameId { renderEmitter }) =
-  Picture \context2D canvasImageSources ->
-    fire renderEmitter { context2D, canvasImageSources }
+renderGame (GameId { renderEmitter }) = absorb' \context2D canvasImageSources -> do
+  fire renderEmitter { context2D, canvasImageSources }
+  pure empty
 
 emptyGameId :: forall m s i. Bind m => MonadEffect m => m (GameId s i)
 emptyGameId = do

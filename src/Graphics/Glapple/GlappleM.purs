@@ -25,7 +25,7 @@ type InternalState (s :: Type) g (i :: Type) o =
   , gameStateRef :: Ref (Maybe g) --ゲームの状態を保存(ゲーム開始前はNothing)
   , internalRegistrationIdsRef :: Ref (Maybe (InternalRegistrationIds s i o)) --ゲームのregistrationIdを保存
   , keyStateRef :: Ref (Set KeyCode) --現在押されているキーのSet
-  , mousePositionRef :: Ref { mouseX :: Number, mouseY :: Number }
+  , mousePositionRef :: Ref (Maybe { mouseX :: Number, mouseY :: Number })
   }
 
 newtype GlappleM s g i o a =
@@ -104,14 +104,26 @@ destroy = do
     Nothing -> log "Glapple Warning: 初期化前に destroy が呼ばれたので，ゲームを破棄できませんでした．意図していない挙動であるかもしれません．"
   GlappleM $ lift $ MaybeT $ pure Nothing
 
+-- | 現在のキーの押下状態を取得．
 getKeyState :: forall s g i o. KeyCode -> GlappleM s g i o Boolean
 getKeyState code = do
   { keyStateRef } <- ask
   keyState <- liftEffect $ read keyStateRef
   pure $ member code keyState
 
-getMousePosition :: forall s g i o. GlappleM s g i o { mouseX :: Number, mouseY :: Number }
+-- | 現在のマウスの位置を取得．ユーザーがまだマウスを動かしていないなど，マウスの位置が取得できないときはNothingを返す．
+getMousePosition :: forall s g i o. GlappleM s g i o (Maybe { mouseX :: Number, mouseY :: Number })
 getMousePosition = do
   { mousePositionRef } <- ask
   mousePosition <- liftEffect $ read mousePositionRef
   pure mousePosition
+
+-- | 現在の処理を止める
+break :: forall s g i o a. GlappleM s g i o a
+break = GlappleM $ lift $ MaybeT $ pure Nothing
+
+-- | GlappleMの処理内容をEffectで表現．
+toEffect :: forall s g i o a x. (x -> GlappleM s g i o a) -> GlappleM s g i o (x -> Effect (Maybe a))
+toEffect glappleM = do
+  internalState <- ask
+  pure $ \x -> runGlappleM (glappleM x) internalState

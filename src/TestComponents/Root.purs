@@ -5,12 +5,13 @@ import Prelude
 
 import Color (rgb', rgba')
 import Data.Int (floor)
+import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
 import Effect.Class (liftEffect)
 import Graphics.Canvas (PatternRepeat(..), TextAlign(..), TextBaseline(..))
 import Graphics.Glapple (Event(..), GameId, GameSpecM(..), KeyCode(..), getMousePosition, renderGame, runChildGameM_, tell)
-import Graphics.Glapple.Data.Picture (DrawStyle(..), Font(..), FontFamily(..), FontStyle(..), FontWeight(..), Picture, Shape(..), arc, color, draw, fan, font, lineWidth, polygon, rect, rotate, scale, sprite, text, textAlign, textBaseLine, translate, (<-*), (<-+), (<-.), (<-^))
+import Graphics.Glapple.Data.Picture (DrawStyle(..), Font(..), FontFamily(..), FontStyle(..), FontWeight(..), Picture, Shape(..), arc, color, empty, fan, font, lineWidth, paint, polygon, rect, rotate, scale, sprite, text, textAlign, textBaseLine, translate, (<-*), (<-+), (<-.), (<-^))
 import Graphics.Glapple.GlappleM (getGameState, modifyGameState)
 import TestComponents.Apple as Apple
 import TestComponents.DestroyTest as DestroyTest
@@ -23,7 +24,7 @@ type GameState =
   , rotating :: Boolean
   , apple :: GameId Sprite Apple.Input
   , destroyTest :: GameId Sprite Unit
-  , particle :: GameId Sprite ParticleTest.Input
+  , particle :: GameId Sprite Unit
   }
 
 type Input = Unit
@@ -58,7 +59,7 @@ gameSpec = GameSpecM
 
   render = do
     { apple, destroyTest, fps, particle } <- getGameState
-    { mouseX, mouseY } <- getMousePosition
+    mousePos <- getMousePosition
     let
       fpsText = text Stroke (show $ floor fps)
         # textAlign AlignRight
@@ -68,7 +69,10 @@ gameSpec = GameSpecM
         # color (rgba' 0.0 0.0 0.0 0.5)
         # lineWidth 1.0
 
-    tell particle { x: mouseX, y: mouseY }
+    let
+      particlePic = case mousePos of
+        Just { mouseX, mouseY } -> translate mouseX mouseY $ renderGame particle
+        Nothing -> empty
 
     pure $
       fpsText
@@ -81,11 +85,11 @@ gameSpec = GameSpecM
         <-+ testArc
         <-+ testFan
         <-^ renderGame destroyTest
-        <-^ renderGame particle
+        <-^ particlePic
 
 testPolygon :: forall sprite. Picture sprite
 testPolygon = polygon Fill polyData
-  # draw
+  # paint
       ( LinearGradient
           { x0: 0.0
           , x1: 200.0
@@ -101,7 +105,7 @@ polyData = [ 10.0 /\ 5.0, 180.0 /\ 60.0, 64.0 /\ 256.0 ]
 testPolygon2 :: forall s. Picture s
 testPolygon2 = polygon Fill polyData
   # translate 140.0 0.0
-  # draw
+  # paint
       ( RadialGradient
           { x0: 160.0
           , x1: 160.0
@@ -116,7 +120,7 @@ testPolygon2 = polygon Fill polyData
 testPolygon3 :: Picture Sprite
 testPolygon3 = polygon Fill polyData
   # translate 80.0 150.0
-  # draw (Pattern { sprite: Apple, repeat: Repeat })
+  # paint (Pattern { sprite: Apple, repeat: Repeat })
 
 testPolygon4 :: forall s. Picture s
 testPolygon4 = polygon Stroke polyData
@@ -141,7 +145,7 @@ testFan :: Picture Sprite
 testFan =
   fan Stroke { start: -1.3, end: 1.2, radius: 80.0 }
     # translate 120.0 120.0
-    # draw (Pattern { sprite: Apple, repeat: Repeat })
+    # paint (Pattern { sprite: Apple, repeat: Repeat })
     # lineWidth 20.0
 
 fontStandard :: Font
