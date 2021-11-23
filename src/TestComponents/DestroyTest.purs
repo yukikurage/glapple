@@ -21,7 +21,6 @@ gameSpec = GameSpecM
   where
   eventHandler = case _ of
     Update { deltaTime } -> do
-      destroy --何回か成功しない(ログにでる？)
       { x } <- getGameState
       d <- getKeyState $ Keyboard "KeyD"
       when d $ putGameState $ { x: x + deltaTime * 80.0 }

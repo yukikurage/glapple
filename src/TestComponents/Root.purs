@@ -86,6 +86,7 @@ gameSpec = GameSpecM
         <-+ testFan
         <-^ renderGame destroyTest
         <-^ particlePic
+        <-^ renderGame destroyTest
 
 testPolygon :: forall sprite. Picture sprite
 testPolygon = polygon Fill polyData
