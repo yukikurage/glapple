@@ -4,9 +4,9 @@ import Prelude
 
 import Effect.Class (liftEffect)
 import Effect.Random (random)
-import Graphics.Canvas (Transform)
+import Graphics.GlappleEx.HOGs.Fixer (fixer)
 import Graphics.Glapple (Event(..), GameId, GameSpecM(..), defaultHandler, destroy, emptyGameId, getGameState, modifyGameState, putGameState, renderGame, runGameWithM_)
-import Graphics.Glapple.Data.Picture (Picture, absolute, opacity, rotate, transform, translate)
+import Graphics.Glapple.Data.Picture (Picture, opacity, rotate, translate)
 import Graphics.GlappleEx.Utils (refTransform)
 import Math (pi)
 
@@ -34,17 +34,16 @@ gameSpec pps pic = GameSpecM
     when (waitTime > 1.0 / pps) do
       modifyGameState _ { waitTime = 0.0 }
       r <- liftEffect random
-      runGameWithM_ (gameSpecMonoParticle t (r * 2.0 * pi) pic) $ particles
+      runGameWithM_ (fixer t $ gameSpecMonoParticle (r * 2.0 * pi) pic) $ particles
     pure $ renderGame particles
 
 -- | パーティクル1つ
 gameSpecMonoParticle
   :: forall s i o
-   . Transform
-  -> Number
+   . Number
   -> Picture s
   -> GameSpecM s { o :: Number, x :: Number } i o
-gameSpecMonoParticle t r pic = GameSpecM
+gameSpecMonoParticle r pic = GameSpecM
   { eventHandler
   , inputHandler: defaultHandler
   , render
@@ -61,6 +60,4 @@ gameSpecMonoParticle t r pic = GameSpecM
     pure $ pic
       # translate x 0.0
       # rotate r
-      # transform t
       # opacity o
-      # absolute

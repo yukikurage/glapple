@@ -15,6 +15,7 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
 import Effect.Aff (Aff, Milliseconds(..), delay, launchAff_)
 import Effect.Class (liftEffect)
+import Effect.Class.Console (log)
 import Effect.Now (nowTime)
 import Effect.Ref (modify_, new, read, write)
 import Graphics.Canvas (CanvasElement, CanvasImageSource, Context2D, canvasElementToImageSource, clearRect, drawImage, getContext2D, setCanvasHeight, setCanvasWidth)
@@ -104,9 +105,11 @@ runChildGameM (GameSpecM { initGameState, render, eventHandler, inputHandler }) 
 
   liftEffect $ write (Just internalRegistrationIds) internalRegistrationIdsRef
 
-  _ <- liftEffect $ flip runGlappleM childInternalState do
+  res <- liftEffect $ flip runGlappleM childInternalState do
     gameState <- initGameState
     liftEffect $ write (Just gameState) gameStateRef
+
+  when (res == Nothing) $ log "Glapple Warning: Game initialization failed, possibly due to the use of functions such as getState in initGameState."
 
   pure gameId
 
@@ -160,9 +163,11 @@ runGameWithM (GameSpecM { initGameState, render, eventHandler, inputHandler }) (
 
   liftEffect $ write (Just internalRegistrationIds) internalRegistrationIdsRef
 
-  _ <- liftEffect $ flip runGlappleM childInternalState do
+  res <- liftEffect $ flip runGlappleM childInternalState do
     gameState <- initGameState
     liftEffect $ write (Just gameState) gameStateRef
+
+  when (res == Nothing) $ log "Glapple Warning: Game initialization failed, possibly due to the use of functions such as getState in initGameState."
 
   pure unit
 
@@ -317,9 +322,11 @@ runGameM
   addEventListener mousemove mouseMoveHandler false w
 
   -- GameStateの初期化
-  _ <- liftEffect $ flip runGlappleM internalState do
+  res <- liftEffect $ flip runGlappleM internalState do
     gameState <- initGameState
     liftEffect $ write (Just gameState) gameStateRef
+
+  when (res == Nothing) $ log "Glapple Warning: Game initialization failed, possibly due to the use of functions such as getState in initGameState."
 
   launchAff_ do
     canvasImageSources <- loadImages sprites
