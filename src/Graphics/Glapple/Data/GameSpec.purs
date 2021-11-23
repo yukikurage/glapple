@@ -1,5 +1,3 @@
--- | 純粋な操作しか行わないゲーム
--- |
 module Graphics.Glapple.Data.GameSpec where
 
 import Prelude
@@ -9,6 +7,7 @@ import Graphics.Glapple.Data.Event (Event)
 import Graphics.Glapple.Data.GameSpecM (GameSpecM(..))
 import Graphics.Glapple.Data.Picture (Picture)
 
+-- | A pure version of GameSpecM.
 newtype GameSpec sprite gameState input = GameSpec
   { initGameState :: gameState
   , render :: { totalTime :: Number } -> gameState -> Picture sprite
@@ -16,11 +15,11 @@ newtype GameSpec sprite gameState input = GameSpec
   , inputHandler :: input -> gameState -> gameState
   }
 
+-- | Convert GameSpec to GameSpecM.
 mkGameSpecM
   :: forall gameState sprite input output
    . GameSpec sprite gameState input
   -> GameSpecM sprite gameState input output
-
 mkGameSpecM
   ( GameSpec
       { initGameState

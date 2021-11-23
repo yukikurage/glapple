@@ -85,6 +85,7 @@ getTotalTime = do
     totalTime = map f initTimeMaybe
   GlappleM $ lift $ MaybeT $ pure totalTime
 
+-- | Raise information to the parent game.
 raise
   :: forall s g i o
    . o
@@ -93,7 +94,7 @@ raise output = do
   { outputEmitter } <- ask --outputのエミッターを取得
   liftEffect $ fire outputEmitter output --発火
 
--- | ゲームを破棄する．
+-- | Destroy the game.
 destroy :: forall s g i o. GlappleM s g i o Unit
 destroy = do
   { internalRegistrationIdsRef } <- ask
@@ -104,25 +105,26 @@ destroy = do
     Nothing -> log "Glapple Warning: 初期化前に destroy が呼ばれたので，ゲームを破棄できませんでした．意図していない挙動であるかもしれません．"
   GlappleM $ lift $ MaybeT $ pure Nothing
 
--- | 現在のキーの押下状態を取得．
+-- | Gets the current key press state.
 getKeyState :: forall s g i o. KeyCode -> GlappleM s g i o Boolean
 getKeyState code = do
   { keyStateRef } <- ask
   keyState <- liftEffect $ read keyStateRef
   pure $ member code keyState
 
--- | 現在のマウスの位置を取得．ユーザーがまだマウスを動かしていないなど，マウスの位置が取得できないときはNothingを返す．
+-- | Gets the current mouse position.
+-- | Returns Nothing if the mouse position cannot be obtained because the user has not moved the mouse yet.
 getMousePosition :: forall s g i o. GlappleM s g i o (Maybe { mouseX :: Number, mouseY :: Number })
 getMousePosition = do
   { mousePositionRef } <- ask
   mousePosition <- liftEffect $ read mousePositionRef
   pure mousePosition
 
--- | 現在の処理を止める
+-- | Stop the current process.
 break :: forall s g i o a. GlappleM s g i o a
 break = GlappleM $ lift $ MaybeT $ pure Nothing
 
--- | GlappleMの処理内容をEffectで表現．
+-- | Express the process of GlappleM by Effect.
 toEffect :: forall s g i o a x. (x -> GlappleM s g i o a) -> GlappleM s g i o (x -> Effect (Maybe a))
 toEffect glappleM = do
   internalState <- ask

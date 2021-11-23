@@ -1,4 +1,3 @@
--- | runGameMでゲームを実行します．
 module Graphics.Glapple.GameRunnerM (runChildGameM, runChildGameM_, runGameM, runGameM_, runGameWithM, runGameWithM_, createCanvasElement) where
 
 import Prelude
@@ -62,7 +61,7 @@ makeHandlerEffect
 makeHandlerEffect internalState eventHandler = \e -> map (fromMaybe unit)
   $ runGlappleM (eventHandler e) internalState
 
--- | 現在のゲームの中で，新しく子ゲームを作る
+-- | Create a new child game within the current game.
 runChildGameM
   :: forall s g i o childG childI childO
    . GameSpecM s childG childI childO
@@ -122,7 +121,8 @@ runChildGameM_ gameSpecM = runChildGameM gameSpecM \_ -> pure unit
 -------------------
 -- Run Game With --
 -------------------
--- | GameSlotにGameを追加する
+
+-- | Add a Game to the GameId.
 runGameWithM
   :: forall s g i o childG childI childO
    . GameSpecM s childG childI childO
@@ -188,7 +188,7 @@ loadImages sprites = do
     $ for sprites (\(sprite /\ src) -> (sprite /\ _) <$> tryLoadImageAff src)
   pure \s -> lookup s tmp
 
--- | トップレベルでゲームを作る
+-- | Making Games at the Top Level.
 runGameM
   :: forall s g i o
    . Ord s

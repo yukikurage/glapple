@@ -106,7 +106,12 @@ data DrawStyle sprite
   | Pattern { sprite :: sprite, repeat :: PatternRepeat }
   | MonoColor Color
 
+derive instance Eq sprite => Eq (DrawStyle sprite)
+
 data Shape = Fill | Stroke
+
+derive instance Eq Shape
+derive instance Ord Shape
 
 runShape :: Context2D -> Shape -> Effect Unit
 runShape ctx = case _ of
@@ -145,6 +150,9 @@ setDrawStyle ctx canvasImageSources = case _ of
 
 data FontStyle = FontStyleNormal | Oblique | Italic
 
+derive instance Eq FontStyle
+derive instance Ord FontStyle
+
 instance Show FontStyle where
   show = case _ of
     FontStyleNormal -> "normal"
@@ -153,6 +161,9 @@ instance Show FontStyle where
 
 data FontWeight = FontWeightNormal | Bold | FontWeight Int
 
+derive instance Eq FontWeight
+derive instance Ord FontWeight
+
 instance Show FontWeight where
   show = case _ of
     FontWeightNormal -> "normal"
@@ -160,6 +171,9 @@ instance Show FontWeight where
     FontWeight i -> show i
 
 data FontFamily = Serif | SansSerif | Cursive | Fantasy | Monospace
+
+derive instance Eq FontFamily
+derive instance Ord FontFamily
 
 instance Show FontFamily where
   show = case _ of
@@ -177,6 +191,9 @@ newtype Font = Font
   , fontFamily :: FontFamily
   }
 
+derive instance Eq Font
+derive instance Ord Font
+
 setFont :: Context2D -> Font -> Effect Unit
 setFont ctx (Font { fontStyle, fontWeight, fontSize, fontHeight, fontFamily }) = do
   C.setFont ctx $ show fontStyle
@@ -193,9 +210,9 @@ setFont ctx (Font { fontStyle, fontWeight, fontSize, fontHeight, fontFamily }) =
 -- Picture Operations --
 ------------------------
 
--- | 指定された合成方法で画像を合成
--- | 問題点: 合成した画像の合成が予想外の動作をする．
--- | ex) x <-+ (y <-^ z) = (x <-+ y) <-^ z --本来左辺はyとzの合成がxに対しLighterで作用して欲しい
+-- | Combine images using the specified combining method.
+-- | Issue: Synthesis of the combined image behaves unexpectedly.
+-- | ex) x <-+ (y <-^ z) = (x <-+ y) <-^ z
 composite :: forall sprite. Composite -> Picture sprite -> Picture sprite -> Picture sprite
 composite comp pic1 pic2 =
   Picture \ctx canvasImageSources -> do
@@ -226,7 +243,7 @@ translate x y = operate (\ctx -> C.translate ctx { translateX: x, translateY: y 
 scale :: forall s. Number -> Number -> Picture s -> Picture s
 scale sx sy = operate (\ctx -> C.scale ctx { scaleX: sx, scaleY: sy })
 
--- | 右回転
+-- | Right-handed.
 rotate :: forall s. Number -> Picture s -> Picture s
 rotate r = operate (flip C.rotate r)
 
@@ -237,25 +254,24 @@ transform trans = operate (flip C.transform trans)
 -- Magics --
 ------------
 
--- | 生成されたPictureが描画された段階でのTransformを取得して描画できます．
 drawWithTransform :: forall s. (Transform -> Picture s) -> Picture s
 drawWithTransform f = Picture \ctx img -> do
   t <- liftEffect $ getTransform ctx
   drawPicture ctx img $ f t
 
--- | absorbにContext2DとCanvasImageSourcesを渡します．非推奨．
+-- | Deprecated.
 absorb' :: forall s. (Context2D -> (s -> Maybe CanvasImageSource) -> Aff (Picture s)) -> Picture s
 absorb' affPic = Picture \ctx img -> do
   pic <- affPic ctx img
   drawPicture ctx img pic
 
--- | Affの作用をPictureの中に埋め込みます．
+-- | Embeds the action of Aff into the Picture.
 absorb :: forall s. Aff (Picture s) -> Picture s
 absorb affPic = Picture \ctx img -> do
   pic <- affPic
   drawPicture ctx img pic
 
--- | この親のtransformを無効化し，強制的に原点から描画します．多用は非推奨
+-- | Disables the parent's transform, forcing it to draw from the origin. Heavy use is deprecated.
 absolute :: forall s. Picture s -> Picture s
 absolute = operate (flip setTransform { m11: 1.0, m12: 0.0, m21: 0.0, m22: 1.0, m31: 0.0, m32: 0.0 })
 
@@ -263,7 +279,6 @@ absolute = operate (flip setTransform { m11: 1.0, m12: 0.0, m21: 0.0, m22: 1.0, 
 -- Shapes --
 ------------
 
--- | Pictureに何らかのプロパティをつける
 operate :: forall s. (Context2D -> Effect Unit) -> Picture s -> Picture s
 operate f p = Picture \ctx img -> saveAndRestore ctx do
   liftEffect $ f ctx
@@ -279,7 +294,7 @@ sprite spr = Picture \ctx canvasImageSources -> liftEffect do
     Just x -> do
       drawImage ctx x 0.0 0.0
 
--- | 色をつけます
+-- | Add color or pattern
 paint :: forall s. DrawStyle s -> Picture s -> Picture s
 paint drawStyle shape = Picture \ctx img -> saveAndRestore ctx do
   liftEffect $ setDrawStyle ctx img drawStyle

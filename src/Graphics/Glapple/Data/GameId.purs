@@ -1,4 +1,3 @@
--- | ゲームの状態を外部から操作する関数
 module Graphics.Glapple.Data.GameId where
 
 import Prelude
@@ -11,8 +10,7 @@ import Graphics.Canvas (CanvasImageSource, Context2D)
 import Graphics.Glapple.Data.Emitter (EmitterId, fire, newEmitter)
 import Graphics.Glapple.Data.Picture (Picture, absorb', empty)
 
--- | ゲームを指し示すIDです．
--- | これを使って外部からゲームに指示できます．
+-- | Used for input from outside the game.
 data GameId s i =
   GameId
     { inputEmitter :: EmitterId Effect i --Input EmitterはInputを取る必要がある
@@ -23,7 +21,7 @@ data GameId s i =
           }
     }
 
--- | GameIdで表されるゲームにInputを発火させます
+-- | Pass the information to the game.
 tell
   :: forall s i m
    . MonadEffect m
@@ -32,7 +30,7 @@ tell
   -> m Unit
 tell (GameId { inputEmitter }) input = liftEffect $ fire inputEmitter $ input
 
--- | GameIdで表されるゲームの状態を描画
+-- | Draw the game.
 renderGame
   :: forall s i
    . GameId s i
@@ -41,6 +39,7 @@ renderGame (GameId { renderEmitter }) = absorb' \context2D canvasImageSources ->
   fire renderEmitter { context2D, canvasImageSources }
   pure empty
 
+-- | Empty GameId.
 emptyGameId :: forall m s i. Bind m => MonadEffect m => m (GameId s i)
 emptyGameId = do
   inputEmitter <- newEmitter

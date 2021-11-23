@@ -1,4 +1,3 @@
--- | runGameMでゲームを実行します．
 module Graphics.Glapple.Data.GameSpecM
   ( GameSpecM(..)
   , CanvasSpec
@@ -17,6 +16,7 @@ type CanvasSpec =
   , width :: Number
   }
 
+-- | runGameM to run the game.
 newtype GameSpecM s g i o = GameSpecM
   { initGameState :: GlappleM s g i o g
   , render :: GlappleM s g i o (Picture s)
