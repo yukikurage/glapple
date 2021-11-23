@@ -2,7 +2,6 @@ module TestComponents.Apple where
 
 import Prelude
 
-import Effect.Class.Console (logShow)
 import Graphics.Glapple (Event(..), GameSpecM(..), KeyCode(..), KeyState(..), getGameState, getLocalTime, mkHandlerM, mkInitGameStateM, modifyGameState)
 import Graphics.Glapple.Data.Picture (rotate, scale, sprite, translate)
 import Math (pi)
