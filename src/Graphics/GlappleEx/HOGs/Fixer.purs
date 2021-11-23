@@ -3,7 +3,8 @@ module Graphics.GlappleEx.HOGs.Fixer where
 import Prelude
 
 import Graphics.Canvas (Transform)
-import Graphics.Glapple (GameId, GameSpecM(..), defaultHandler, getGameState, raise, renderGame, runChildGameM, tell)
+import Graphics.Glapple (Event(..), GameId, GameSpecM(..), destroy, getGameState, raise, renderGame, runChildGameM, tell)
+import Graphics.Glapple.Data.GameId (null)
 import Graphics.Glapple.Data.Picture (absolute, transform)
 
 -- | Fix the game with the given Transform
@@ -12,7 +13,12 @@ fixer trans gameSpec = GameSpecM
   { initGameState: do
       gameId <- runChildGameM gameSpec \o -> raise o
       pure { gameId }
-  , eventHandler: defaultHandler
+  , eventHandler: case _ of
+      Update _ -> do
+        { gameId } <- getGameState
+        frag <- null gameId
+        when frag destroy
+      _ -> pure unit
   , inputHandler: \i -> do
       { gameId } <- getGameState
       tell gameId i

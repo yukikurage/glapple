@@ -2,12 +2,28 @@ module TestComponents.Sprites where
 
 import Prelude
 
-import Data.Tuple.Nested (type (/\), (/\))
+import Color (rgb')
+import Data.Array (fold, range)
+import Data.Int (toNumber)
+import Graphics.Glapple.Data.Picture (Picture, arc, color, lineWidth, translate)
+import Graphics.Glapple.Data.SpriteData (SpriteData(..))
+import Math (pi)
 
-data Sprite = Apple
+data Sprite = Apple | ArcTest
 
 derive instance Eq Sprite
 derive instance Ord Sprite
 
-sprites :: Array (Sprite /\ String)
-sprites = [ Apple /\ "/images/apple.png" ]
+sprites :: Array (SpriteData Sprite)
+sprites = [ FromImage Apple "/images/apple.png", FromPicture ArcTest arcTest ]
+
+arcTest :: forall s. Picture s
+arcTest = lineWidth 4.0 $ color (rgb' 0.5 0.0 0.5) $ fold do
+  i <- range (-4) 4
+  j <- range (-8) 8
+  let
+    i' = toNumber i
+    j' = toNumber j
+    start = i' * pi / 2.0
+    angle = j' * pi / 2.0
+  pure $ translate (j' * 18.0 + 9.0) (i' * 18.0 + 9.0) $ arc { start, angle, radius: 6.0 }

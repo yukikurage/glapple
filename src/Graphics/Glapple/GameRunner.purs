@@ -2,14 +2,14 @@ module Graphics.Glapple.GameRunner where
 
 import Prelude
 
-import Data.Tuple.Nested (type (/\))
 import Effect (Effect)
-import Graphics.Glapple.GlappleM (GlappleM)
 import Graphics.Canvas (CanvasElement)
 import Graphics.Glapple.Data.GameId (GameId)
 import Graphics.Glapple.Data.GameSpec (GameSpec, mkGameSpecM)
 import Graphics.Glapple.Data.GameSpecM (CanvasSpec)
+import Graphics.Glapple.Data.SpriteData (SpriteData)
 import Graphics.Glapple.GameRunnerM (runChildGameM_, runGameM_)
+import Graphics.Glapple.GlappleM (GlappleM)
 
 runChildGame
   :: forall s g i o childG childI
@@ -23,7 +23,7 @@ runGame
   => Number
   -> CanvasElement
   -> CanvasSpec
-  -> Array (sprite /\ String)
+  -> Array (SpriteData sprite)
   -> GameSpec sprite gameState input
   -> Effect (GameId sprite input)
 runGame fps canvasElement canvasSpec sprites gameSpec =

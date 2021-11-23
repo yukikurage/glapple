@@ -46,7 +46,7 @@ import Prelude
 import Color (Color, cssStringRGBA)
 import Data.Array (uncons)
 import Data.Either (Either(..))
-import Data.Foldable (for_)
+import Control.Safely (for_)
 import Data.Maybe (Maybe(..))
 import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
@@ -54,6 +54,7 @@ import Effect.Aff (Aff, error, makeAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Graphics.Canvas (CanvasGradient, CanvasImageSource, CanvasPattern, Composite(..), Context2D, PatternRepeat, TextAlign, TextBaseline, Transform, addColorStop, beginPath, closePath, createLinearGradient, createPattern, createRadialGradient, drawImage, fill, lineTo, moveTo, restore, save, setGlobalAlpha, setGlobalCompositeOperation, setGradientFillStyle, setLineWidth, setPatternFillStyle, setTextAlign, setTextBaseline, setTransform, stroke, tryLoadImage)
 import Graphics.Canvas as C
+import Math (pi, floor)
 
 newtype Picture sprite = Picture (Context2D -> (sprite -> Maybe CanvasImageSource) -> Aff Unit)
 
@@ -243,7 +244,7 @@ translate x y = operate (\ctx -> C.translate ctx { translateX: x, translateY: y 
 scale :: forall s. Number -> Number -> Picture s -> Picture s
 scale sx sy = operate (\ctx -> C.scale ctx { scaleX: sx, scaleY: sy })
 
--- | Right-handed.
+-- | Clockwise
 rotate :: forall s. Number -> Picture s -> Picture s
 rotate r = operate (flip C.rotate r)
 
@@ -294,7 +295,7 @@ sprite spr = Picture \ctx canvasImageSources -> liftEffect do
     Just x -> do
       drawImage ctx x 0.0 0.0
 
--- | Add color or pattern
+-- | Add color or pattern.
 paint :: forall s. DrawStyle s -> Picture s -> Picture s
 paint drawStyle shape = Picture \ctx img -> saveAndRestore ctx do
   liftEffect $ setDrawStyle ctx img drawStyle
@@ -370,14 +371,33 @@ rect style height width = Picture \ctx _ -> saveAndRestore ctx $ liftEffect do
   C.rect ctx { x: 0.0, y: 0.0, height, width }
   runShape ctx style
 
-arc :: forall s. { start :: Number, end :: Number, radius :: Number } -> Picture s
-arc { start, end, radius } = Picture \ctx _ -> saveAndRestore ctx $ liftEffect do
-  C.arc ctx { x: 0.0, y: 0.0, start, end, radius }
+-- | Draw an arc with stroke.
+-- | Property angle is the rotation angle from the start position.
+-- | A positive number will cause a clockwise rotation, 2π will make a perfect circle, and 4π will return to a blank state.
+arc :: forall s. { start :: Number, angle :: Number, radius :: Number } -> Picture s
+arc { start, angle, radius } = Picture \ctx _ -> saveAndRestore ctx $ liftEffect do
+  let
+    { start: start', end } = convertArcFormat { start, angle }
+  C.arc ctx { x: 0.0, y: 0.0, start: start', end, radius }
   runShape ctx $ Stroke
 
-fan :: forall s. Shape -> { start :: Number, end :: Number, radius :: Number } -> Picture s
-fan style { radius, start, end } = Picture \ctx _ -> saveAndRestore ctx $ liftEffect do
+convertArcFormat :: { start :: Number, angle :: Number } -> { start :: Number, end :: Number }
+convertArcFormat { start, angle } = { start: startRes, end: endRes }
+  where
+  start' = start - floor (start / (2.0 * pi)) * 2.0 * pi
+  angle' = angle - floor (angle / (4.0 * pi)) * 4.0 * pi
+  startRes /\ endRes = case angle' of
+    x | 0.0 <= x && x <= 2.0 * pi -> start' /\ (start' + x)
+    x {-2 * pi < r && r < 4 * pi-} -> (start' + x - 2.0 * pi) /\ start'
+
+-- | Draw a fan.
+-- | Property angle is the rotation angle from the start position.
+-- | A positive number will cause a clockwise rotation, 2π will make a perfect circle, and 4π will return to a blank state.
+fan :: forall s. Shape -> { start :: Number, angle :: Number, radius :: Number } -> Picture s
+fan style { radius, start, angle } = Picture \ctx _ -> saveAndRestore ctx $ liftEffect do
+  let
+    { start: start', end } = convertArcFormat { start, angle }
   moveTo ctx 0.0 0.0
-  C.arc ctx { x: 0.0, y: 0.0, start, end, radius }
+  C.arc ctx { x: 0.0, y: 0.0, start: start', end, radius }
   closePath ctx
   runShape ctx style

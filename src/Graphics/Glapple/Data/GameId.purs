@@ -7,7 +7,7 @@ import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Graphics.Canvas (CanvasImageSource, Context2D)
-import Graphics.Glapple.Data.Emitter (EmitterId, fire, newEmitter)
+import Graphics.Glapple.Data.Emitter (EmitterId, emitterSize, fire, newEmitter)
 import Graphics.Glapple.Data.Picture (Picture, absorb', empty)
 
 -- | Used for input from outside the game.
@@ -45,3 +45,11 @@ emptyGameId = do
   inputEmitter <- newEmitter
   renderEmitter <- newEmitter
   pure $ GameId { inputEmitter, renderEmitter }
+
+-- | GameIdが空のときTrueを返します
+null :: forall s i m. MonadEffect m => GameId s i -> m Boolean
+null (GameId { inputEmitter, renderEmitter }) = do
+  inputS <- emitterSize inputEmitter
+  renderS <- emitterSize renderEmitter
+
+  pure $ inputS == 0 && renderS == 0

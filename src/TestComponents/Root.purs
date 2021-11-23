@@ -10,9 +10,8 @@ import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
 import Effect.Class (liftEffect)
 import Graphics.Canvas (PatternRepeat(..), TextAlign(..), TextBaseline(..))
-import Graphics.Glapple (Event(..), GameId, GameSpecM(..), KeyCode(..), getMousePosition, renderGame, runChildGameM_, tell)
+import Graphics.Glapple (Event(..), GameId, GameSpecM(..), KeyCode(..), getGameState, getMousePosition, modifyGameState, renderGame, runChildGameM_, tell)
 import Graphics.Glapple.Data.Picture (DrawStyle(..), Font(..), FontFamily(..), FontStyle(..), FontWeight(..), Picture, Shape(..), arc, color, empty, fan, font, lineWidth, paint, polygon, rect, rotate, scale, sprite, text, textAlign, textBaseLine, translate, (<-*), (<-+), (<-.), (<-^))
-import Graphics.Glapple.GlappleM (getGameState, modifyGameState)
 import TestComponents.Apple as Apple
 import TestComponents.DestroyTest as DestroyTest
 import TestComponents.ParticleTest as ParticleTest
@@ -86,7 +85,8 @@ gameSpec = GameSpecM
         <-+ testFan
         <-^ renderGame destroyTest
         <-^ particlePic
-        <-^ renderGame destroyTest
+
+-- <-^ sprite ArcTest
 
 testPolygon :: forall sprite. Picture sprite
 testPolygon = polygon Fill polyData
@@ -137,14 +137,14 @@ testRect = color (rgb' 1.0 0.6 0.6) (rect Stroke 160.0 80.0)
 
 testArc :: forall s. Picture s
 testArc =
-  arc { start: 0.0, end: 1.6, radius: 80.0 }
+  arc { start: 0.0, angle: 1.6, radius: 80.0 }
     # translate 160.0 160.0
     # color (rgb' 1.0 0.5 1.0)
     # lineWidth 20.0
 
 testFan :: Picture Sprite
 testFan =
-  fan Stroke { start: -1.3, end: 1.2, radius: 80.0 }
+  fan Stroke { start: -1.3, angle: 1.2, radius: 80.0 }
     # translate 120.0 120.0
     # paint (Pattern { sprite: Apple, repeat: Repeat })
     # lineWidth 20.0

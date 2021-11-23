@@ -2,7 +2,8 @@ module Graphics.Glapple.Data.Emitter (newEmitter, unregister, unregisterAll, reg
 
 import Prelude
 
-import Data.Foldable (for_)
+import Control.Monad.Rec.Class (class MonadRec)
+import Control.Safely (for_)
 import Data.Map (Map, delete, empty, insert, size)
 import Data.Tuple.Nested (type (/\), (/\))
 import Effect.Class (class MonadEffect, liftEffect)
@@ -35,7 +36,7 @@ unregisterAll :: forall m m' i. MonadEffect m => EmitterId m' i -> m Unit
 unregisterAll (EmitterId emitterId) = liftEffect $ write (bottom /\ empty) emitterId
 
 -- | Fire emitter.
-fire :: forall m i. MonadEffect m => Applicative m => EmitterId m i -> i -> m Unit
+fire :: forall m i. MonadEffect m => MonadRec m => EmitterId m i -> i -> m Unit
 fire (EmitterId emitterRef) i = do
   _ /\ emitter <- liftEffect $ read emitterRef
   for_ emitter (\f -> f i)

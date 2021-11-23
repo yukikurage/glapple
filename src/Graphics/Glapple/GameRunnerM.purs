@@ -4,12 +4,13 @@ import Prelude
 
 import Control.Monad.Reader (ask)
 import Control.Monad.Rec.Class (forever)
+import Data.Array (catMaybes)
 import Data.Int (toNumber)
-import Data.Map (fromFoldable, lookup)
+import Data.Map (Map, fromFoldable, lookup, union)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Set (delete, insert)
 import Data.Time (diff)
-import Data.Traversable (for)
+import Data.Traversable (for, traverse)
 import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
 import Effect.Aff (Aff, Milliseconds(..), delay, launchAff_)
@@ -23,6 +24,7 @@ import Graphics.Glapple.Data.Event (Event(..), KeyCode(..), KeyState(..), MouseB
 import Graphics.Glapple.Data.GameId (GameId(..))
 import Graphics.Glapple.Data.GameSpecM (CanvasSpec, GameSpecM(..))
 import Graphics.Glapple.Data.Picture (Picture, drawPicture, empty, tryLoadImageAff)
+import Graphics.Glapple.Data.SpriteData (SpriteData(..))
 import Graphics.Glapple.GlappleM (GlappleM, InternalState, runGlappleM)
 import Unsafe.Coerce (unsafeCoerce)
 import Web.Event.EventTarget (addEventListener, eventListener)
@@ -182,11 +184,11 @@ runGameWithM_ gameSpecM gameSlot = runGameWithM gameSpecM gameSlot \_ -> pure un
 -- Run Game --
 -- -----------
 
-loadImages :: forall s. Ord s => Array (s /\ String) -> Aff (s -> Maybe CanvasImageSource)
+loadImages :: forall s. Ord s => Array (s /\ String) -> Aff (Map s CanvasImageSource)
 loadImages sprites = do
   tmp <- map fromFoldable
     $ for sprites (\(sprite /\ src) -> (sprite /\ _) <$> tryLoadImageAff src)
-  pure \s -> lookup s tmp
+  pure tmp
 
 -- | Making Games at the Top Level.
 runGameM
@@ -195,7 +197,7 @@ runGameM
   => Number
   -> CanvasElement
   -> CanvasSpec
-  -> Array (s /\ String)
+  -> Array (SpriteData s)
   -> GameSpecM s g i o
   -> (o -> Effect Unit)
   -> Effect (GameId s i)
@@ -204,7 +206,7 @@ runGameM
   fps
   canvasElement
   { height, width }
-  sprites
+  spriteData
   (GameSpecM { initGameState, render, eventHandler, inputHandler })
   outputHandler = do
 
@@ -329,7 +331,33 @@ runGameM
   when (res == Nothing) $ log "Glapple Warning: Game initialization failed, possibly due to the use of functions such as getState in initGameState."
 
   launchAff_ do
-    canvasImageSources <- loadImages sprites
+    -- スプライトの読み込み
+    let
+      f = case _ of
+        FromPicture _ _ -> Nothing
+        FromImage sprite src -> Just $ sprite /\ src
+      sprites = catMaybes $ map f $ spriteData
+    canvasImageSourcesTemp <- loadImages sprites
+    let
+      g = case _ of
+        FromPicture sprite pic -> Just $ sprite /\ pic
+        FromImage _ _ -> Nothing
+      picSprites = catMaybes $ map g $ spriteData
+      loadPic (sprite /\ pic) = do
+        tmpCanvas <- liftEffect $ createCanvasElement --裏画面
+        tmpContext2D <- liftEffect $ getContext2D tmpCanvas --裏画面のcontext2D
+        liftEffect $ setCanvasHeight tmpCanvas height
+        liftEffect $ setCanvasWidth tmpCanvas width
+
+        liftEffect $ clearRect tmpContext2D { x: 0.0, y: 0.0, height, width }
+
+        drawPicture tmpContext2D (\s -> lookup s canvasImageSourcesTemp) pic
+
+        pure $ sprite /\ canvasElementToImageSource tmpCanvas
+    loadedPics <- map fromFoldable $ traverse loadPic picSprites
+    let
+      canvasImageSourcesMap = union canvasImageSourcesTemp loadedPics
+      canvasImageSources = \s -> lookup s canvasImageSourcesMap
 
     initTime <- liftEffect $ nowTime
     liftEffect $ write (Just initTime) initTimeRef --ゲーム開始時の時刻を保存
@@ -355,7 +383,7 @@ runGameM
       let
         Milliseconds dt = diff procEnd procStart
 
-      delay $ Milliseconds $ max 10.0 $ 1000.0 / fps - dt
+      delay $ Milliseconds $ max 0.0 $ 1000.0 / fps - dt
 
   pure $ gameId
 
@@ -366,7 +394,7 @@ runGameM_
   => Number
   -> CanvasElement
   -> CanvasSpec
-  -> Array (s /\ String)
+  -> Array (SpriteData s)
   -> GameSpecM s g i o
   -> Effect (GameId s i)
 runGameM_ fps canvasElement { height, width } sprites gameSpecM =
