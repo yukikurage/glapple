@@ -44,9 +44,9 @@ module Graphics.Glapple.Data.Picture
 import Prelude
 
 import Color (Color, cssStringRGBA)
+import Control.Safely (for_)
 import Data.Array (uncons)
 import Data.Either (Either(..))
-import Control.Safely (for_)
 import Data.Maybe (Maybe(..))
 import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
@@ -54,7 +54,7 @@ import Effect.Aff (Aff, error, makeAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Graphics.Canvas (CanvasGradient, CanvasImageSource, CanvasPattern, Composite(..), Context2D, PatternRepeat, TextAlign, TextBaseline, Transform, addColorStop, beginPath, closePath, createLinearGradient, createPattern, createRadialGradient, drawImage, fill, lineTo, moveTo, restore, save, setGlobalAlpha, setGlobalCompositeOperation, setGradientFillStyle, setLineWidth, setPatternFillStyle, setTextAlign, setTextBaseline, setTransform, stroke, tryLoadImage)
 import Graphics.Canvas as C
-import Math (pi, floor)
+import Math (floor, pi)
 
 newtype Picture sprite = Picture (Context2D -> (sprite -> Maybe CanvasImageSource) -> Aff Unit)
 
