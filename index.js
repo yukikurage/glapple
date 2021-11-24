@@ -7237,7 +7237,7 @@ var PS = {};
           })));
       });
   }))));
-  var sprites = [ new Graphics_Glapple_Data_SpriteData.FromImage(Apple.value, "/images/apple.png"), new Graphics_Glapple_Data_SpriteData.FromPicture(ArcTest.value, arcTest) ];
+  var sprites = [ new Graphics_Glapple_Data_SpriteData.FromImage(Apple.value, "./images/apple.png"), new Graphics_Glapple_Data_SpriteData.FromPicture(ArcTest.value, arcTest) ];
   exports["Apple"] = Apple;
   exports["ArcTest"] = ArcTest;
   exports["sprites"] = sprites;
