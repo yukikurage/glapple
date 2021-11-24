@@ -19,11 +19,11 @@ sprites = [ FromImage Apple "/images/apple.png", FromPicture ArcTest arcTest ]
 
 arcTest :: forall s. Picture s
 arcTest = lineWidth 4.0 $ color (rgb' 1.0 0.3 1.0) $ fold do
-  i <- range (-4) 4
-  j <- range (-8) 8
+  i <- range 0 4
+  j <- range 0 8
   let
     i' = toNumber i
     j' = toNumber j
     start = i' * pi / 2.0
     angle = j' * pi / 2.0
-  pure $ translate ((j' + 8.0) * 18.0 + 9.0) ((i' + 4.0) * 18.0 + 9.0) $ arc { start, angle, radius: 6.0 }
+  pure $ translate (j' * 32.0 + 9.0) (i' * 32.0 + 9.0) $ arc { start, angle, radius: 12.0 }

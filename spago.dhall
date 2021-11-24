@@ -17,18 +17,15 @@ to generate this file without the comments in this block.
   , "canvas"
   , "colors"
   , "console"
-  , "datetime"
   , "effect"
   , "exceptions"
   , "glapple"
   , "integers"
   , "math"
   , "maybe"
-  , "owoify"
   , "prelude"
   , "psci-support"
   , "random"
-  , "transformers"
   , "tuples"
   ]
 , packages = ./packages.dhall
