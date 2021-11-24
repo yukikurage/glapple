@@ -1,5 +1,5 @@
 -- | ルートコンポーネント
-module TestComponents.Root where
+module GlappleExamples.Games.Root where
 
 import Prelude
 
@@ -13,10 +13,10 @@ import Graphics.Canvas (PatternRepeat(..), TextAlign(..), TextBaseline(..))
 import Graphics.Glapple (Event(..), GameId, GameSpecM(..), KeyCode(..), KeyState(..), MouseButton(..), break, emptyGameId, getGameState, getMousePosition, modifyGameState, renderGame, runChildGameM_, runGameWithM_, tell)
 import Graphics.Glapple.Data.Picture (DrawStyle(..), Font(..), FontFamily(..), FontStyle(..), FontWeight(..), Picture, Shape(..), arc, color, empty, fan, font, lineWidth, paint, polygon, rect, rotate, scale, sprite, text, textAlign, textBaseLine, translate, translateToTransform, (<-*), (<-+), (<-.), (<-^))
 import Graphics.GlappleEx.Games.Particle as Particle
-import Graphics.GlappleEx.HOGs.Fixer (fixer)
-import TestComponents.Apple as Apple
-import TestComponents.DestroyTest as DestroyTest
-import TestComponents.Sprites (Sprite(..))
+import GlappleExamples.HOGs.Fixer (fixer)
+import GlappleExamples.Games.Apple as Apple
+import GlappleExamples.Games.DestroyTest as DestroyTest
+import GlappleExamples.Sprites (Sprite(..))
 
 -- テスト用のゲーム
 type GameState =

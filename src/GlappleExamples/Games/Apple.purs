@@ -1,11 +1,11 @@
-module TestComponents.Apple where
+module GlappleExamples.Games.Apple where
 
 import Prelude
 
 import Graphics.Glapple (Event(..), GameSpecM(..), KeyCode(..), KeyState(..), getGameState, getLocalTime, mkHandlerM, mkInitGameStateM, modifyGameState)
 import Graphics.Glapple.Data.Picture (rotate, scale, sprite, translate)
 import Math (pi)
-import TestComponents.Sprites (Sprite(..))
+import GlappleExamples.Sprites (Sprite(..))
 
 data Input = StartRotate
 type GameState = { rotating :: Boolean }

@@ -1,4 +1,4 @@
-module TestComponents.Sprites where
+module GlappleExamples.Sprites where
 
 import Prelude
 

@@ -1,11 +1,11 @@
-module TestComponents.DestroyTest where
+module GlappleExamples.Games.DestroyTest where
 
 import Prelude
 
 import Graphics.Glapple (Event(..), GameSpecM(..), KeyCode(..), KeyState(..), defaultHandler, destroy, getGameState, getKeyState, putGameState)
 import Graphics.Glapple.Data.Picture (rotate, sprite, translate)
 import Math (pi)
-import TestComponents.Sprites (Sprite(..))
+import GlappleExamples.Sprites (Sprite(..))
 
 type GameState = { x :: Number }
 

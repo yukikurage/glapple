@@ -7,8 +7,8 @@ import Effect.Class (liftEffect)
 import Effect.Random (random)
 import Graphics.Glapple (Event(..), GameId, GameSpecM(..), defaultHandler, destroy, emptyGameId, getGameState, getLocalTime, modifyGameState, putGameState, renderGame, runGameWithM_, null)
 import Graphics.Glapple.Data.Picture (Picture, opacity, rotate, translate)
-import Graphics.GlappleEx.HOGs.Fixer (fixer)
-import Graphics.GlappleEx.Utils (refTransform)
+import GlappleExamples.HOGs.Fixer (fixer)
+import GlappleExamples.Utils (refTransform)
 import Math (pi)
 
 gameSpec

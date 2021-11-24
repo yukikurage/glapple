@@ -1,4 +1,4 @@
-module Graphics.GlappleEx.HOGs.Fixer where
+module GlappleExamples.HOGs.Fixer where
 
 import Prelude
 
