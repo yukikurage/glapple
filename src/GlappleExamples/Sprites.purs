@@ -15,7 +15,7 @@ derive instance Eq Sprite
 derive instance Ord Sprite
 
 sprites :: Array (SpriteData Sprite)
-sprites = [ FromImage Apple "/images/apple.png", FromPicture ArcTest arcTest ]
+sprites = [ FromImage Apple "./images/apple.png", FromPicture ArcTest arcTest ]
 
 arcTest :: forall s. Picture s
 arcTest = lineWidth 4.0 $ color (rgb' 1.0 0.3 1.0) $ fold do
