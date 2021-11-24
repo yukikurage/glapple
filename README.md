@@ -1,2 +1,12 @@
-# glapple
-このリポジトリは下書きです．完成したら`purescript-glapple`として新しいリポジトリを作成します．
+# Glapple Examples
+This repository is an example of [`purescript-glapple`](https://github.com/yukikurage/purescript-glapple) in action.
+
+### Get Started
+- Install npm
+- Clone this repository
+- Run
+```shell
+npm ci
+npm run watch
+```
+- Access `localhost:8081` on browser
