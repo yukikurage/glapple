@@ -1,29 +1,18 @@
-module GlappleExamples.Sprites where
+module GlappleExamples.Sprites
+  ( SpriteType(..)
+  , sprites
+  ) where
 
 import Prelude
 
-import Color (rgb')
-import Data.Array (fold, range)
-import Data.Int (toNumber)
-import Graphics.Glapple.Data.Picture (Picture, arc, color, lineWidth, translate)
-import Graphics.Glapple.Data.SpriteData (SpriteData(..))
-import Math (pi)
+import Data.Hashable (class Hashable)
+import Graphics.Glapple.Data.Sprite (Sprite(..))
 
-data Sprite = Apple | ArcTest
+data SpriteType = Apple
 
-derive instance Eq Sprite
-derive instance Ord Sprite
+derive instance Eq SpriteType
+instance Hashable SpriteType where
+  hash Apple = 0
 
-sprites :: Array (SpriteData Sprite)
-sprites = [ FromImage Apple "./images/apple.png", FromPicture ArcTest arcTest ]
-
-arcTest :: forall s. Picture s
-arcTest = lineWidth 4.0 $ color (rgb' 1.0 0.3 1.0) $ fold do
-  i <- range 0 4
-  j <- range 0 8
-  let
-    i' = toNumber i
-    j' = toNumber j
-    start = i' * pi / 2.0
-    angle = j' * pi / 2.0
-  pure $ translate (j' * 32.0 + 9.0) (i' * 32.0 + 9.0) $ arc { start, angle, radius: 12.0 }
+sprites :: Array (Sprite SpriteType)
+sprites = [ Source Apple "./images/apple.png" ]

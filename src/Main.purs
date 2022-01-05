@@ -4,19 +4,15 @@ import Prelude
 
 import Data.Maybe (maybe)
 import Effect (Effect)
-import Effect.Aff (Milliseconds(..), delay, runAff_)
-import Effect.Class (liftEffect)
+import Effect.Aff (launchAff_)
 import Effect.Exception (throw)
-import GlappleExamples.Games.Root as Root
+import GlappleExamples.Games.Root (root)
 import GlappleExamples.Sprites (sprites)
 import Graphics.Canvas (getCanvasElementById)
-import Graphics.Glapple (runGameM_, tell)
+import Graphics.Glapple.Runner (run)
 
 main :: Effect Unit
 main = do
   canvas <- maybe (throw "Can not find canvas element") pure
     =<< getCanvasElementById "canvas"
-  gameId <- runGameM_ 60.0 canvas { width: 320.0, height: 320.0 } sprites Root.gameSpec
-  runAff_ (const $ pure unit) do
-    delay $ Milliseconds 3000.0
-    liftEffect $ tell gameId $ unit
+  launchAff_ $ run 60.0 sprites canvas root

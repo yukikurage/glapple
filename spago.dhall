@@ -20,6 +20,7 @@ to generate this file without the comments in this block.
   , "effect"
   , "exceptions"
   , "glapple"
+  , "indexed-monad"
   , "integers"
   , "math"
   , "maybe"
@@ -27,6 +28,7 @@ to generate this file without the comments in this block.
   , "psci-support"
   , "random"
   , "tuples"
+  , "unordered-collections"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]
