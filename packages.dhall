@@ -101,7 +101,8 @@ in  upstream
 let upstream =
       https://github.com/purescript/package-sets/releases/download/psc-0.14.5-20211111/packages.dhall sha256:7ed6350fe897a93926d16298e37d2324aabbe5eca99810204719dc3632fb555f
 in  upstream
-  with glapple =
+  with glapple = ./.spago/glapple/v1.0.2/spago.dhall as Location
+  {-
     { dependencies =
         [ "aff"
         , "arrays"
@@ -132,5 +133,6 @@ in  upstream
     , repo =
         "https://github.com/yukikurage/purescript-glapple"
     , version =
-        "v1.0.0"
+        "v1.0.2"
     }
+-}
