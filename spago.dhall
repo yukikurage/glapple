@@ -13,21 +13,17 @@ to generate this file without the comments in this block.
 { name = "my-project"
 , dependencies =
   [ "aff"
-  , "arrays"
   , "canvas"
-  , "colors"
   , "console"
   , "effect"
   , "exceptions"
   , "glapple"
-  , "indexed-monad"
-  , "integers"
-  , "math"
+  , "js-timers"
   , "maybe"
   , "prelude"
   , "psci-support"
-  , "random"
   , "tuples"
+  , "typelevel-prelude"
   , "unordered-collections"
   ]
 , packages = ./packages.dhall

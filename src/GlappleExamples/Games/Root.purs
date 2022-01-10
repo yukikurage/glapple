@@ -2,29 +2,52 @@ module GlappleExamples.Games.Root where
 
 import Prelude
 
-import Control.Applicative.Indexed (ipure)
-import Control.Monad.Indexed.Qualified as Ix
+import Data.Tuple.Nested ((/\))
 import Effect.Class (class MonadEffect)
-import Effect.Class.Console (log)
 import GlappleExamples.Sprites (SpriteType(..))
-import Graphics.Glapple.Data.Emitter (Emitter)
-import Graphics.Glapple.Data.Picture (Picture, sprite)
-import Graphics.Glapple.GlappleM (GlappleM, ilift)
-import Graphics.Glapple.Runner (useRenderer)
+import Graphics.Canvas (Transform)
+import Graphics.Glapple.Data.Hooks (component)
+import Graphics.Glapple.Data.Hooks.Qualified as H
+import Graphics.Glapple.Data.Picture (sprite, transform, translate)
+import Graphics.Glapple.Hooks.GameComponent (GameComponent)
+import Graphics.Glapple.Hooks.UseLauncher (useLauncher)
+import Graphics.Glapple.Hooks.UseRenderer (useRenderer)
+import Graphics.Glapple.Hooks.UseTimeOut (useTimeOut)
 
 root
-  :: forall m r
+  :: forall m props contexts
    . MonadEffect m
-  => GlappleM m
-       ( rendererEmitter :: Emitter Unit (Picture SpriteType) m
-       | r
-       )
-       ( rendererEmitter :: Emitter Unit (Picture SpriteType) m
-       | r
-       )
-       Unit
-root = Ix.do
-  ilift $ log "added"
-  _ <- useRenderer $ do
+  => GameComponent SpriteType contexts props m Unit
+root = component \_ -> H.do
+  launcher /\ destroyer <- useLauncher child
+
+  useTimeOut 2.0 do
+    _ <- launcher $ translate 50.0 50.0
+    pure unit
+
+  useTimeOut 4.0 do
+    _ <- launcher $ translate 100.0 100.0
+    pure unit
+
+  useTimeOut 6.0 do
+    _ <- launcher $ translate 150.0 150.0
+    pure unit
+
+  useTimeOut 8.0 destroyer
+
+  useRenderer $ \_ -> do
     pure $ sprite Apple
-  ipure unit
+
+child
+  :: forall m contexts
+   . MonadEffect m
+  => GameComponent SpriteType contexts Transform m Unit
+child = component \trans -> H.do
+  -- destroy <- useDestroyer
+
+  -- useTimeOut 2.0 do
+  --   destroy
+  --   pure unit
+
+  useRenderer $ \_ -> do
+    pure $ sprite Apple # transform trans

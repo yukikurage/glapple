@@ -15,4 +15,4 @@ main :: Effect Unit
 main = do
   canvas <- maybe (throw "Can not find canvas element") pure
     =<< getCanvasElementById "canvas"
-  launchAff_ $ run 60.0 sprites canvas root
+  launchAff_ $ run 60.0 sprites canvas root unit

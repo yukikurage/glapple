@@ -5,14 +5,12 @@ module GlappleExamples.Sprites
 
 import Prelude
 
-import Data.Hashable (class Hashable)
 import Graphics.Glapple.Data.Sprite (Sprite(..))
 
 data SpriteType = Apple
 
 derive instance Eq SpriteType
-instance Hashable SpriteType where
-  hash Apple = 0
+derive instance Ord SpriteType
 
 sprites :: Array (Sprite SpriteType)
 sprites = [ Source Apple "./images/apple.png" ]

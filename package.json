@@ -7,14 +7,13 @@
     "clean": "rm -r output .lock .cache",
     "test": "npx spago test",
     "build:spago": "npx spago build",
-    "deploy:spago": "npx spago bundle-app --main Main --to './public/index.js'",
-    "watch:spago": "npx spago build --watch",
+    "bundle:spago": "npx spago bundle-app --main Main --to './public/index.js'",
     "watch:webpack-server": "npx webpack-dev-server",
     "watch": "npm run watch:webpack-server",
-    "deploy": "npm run deploy:spago"
+    "bundle": "npm run bundle:spago"
   },
   "author": "yukikurage",
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
     "purescript": "^0.14.5",
     "purs-tidy": "^0.6.2",
