@@ -12,19 +12,18 @@ to generate this file without the comments in this block.
 -}
 { name = "my-project"
 , dependencies =
-  [ "aff"
-  , "canvas"
+  [ "canvas"
   , "console"
   , "effect"
   , "exceptions"
   , "glapple"
-  , "js-timers"
+  , "math"
   , "maybe"
   , "prelude"
   , "psci-support"
+  , "random"
+  , "safely"
   , "tuples"
-  , "typelevel-prelude"
-  , "unordered-collections"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]
