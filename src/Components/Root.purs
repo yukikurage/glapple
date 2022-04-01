@@ -3,40 +3,44 @@ module Components.Root where
 import Prelude
 
 import Components.ThrownApple (thrownApple)
+import Data.Number (infinity)
 import Data.Tuple.Nested ((/\))
+import Effect.Class (liftEffect)
+import Graphics.Glapple.Data.Collider (Collider(..))
+import Graphics.Glapple.Data.Complex (Complex, complex)
 import Graphics.Glapple.Data.Component (Component)
-import Graphics.Glapple.Data.KeyEvent (KeyCode(..), KeyEvent(..), MouseButton(..))
-import Graphics.Glapple.Data.Picture (line)
-import Graphics.Glapple.Hooks.UseKeyEvent (useKeyEvent)
-import Graphics.Glapple.Hooks.UseRenderer (useRenderer)
+import Graphics.Glapple.Hooks.UseHover (useHover)
 import Graphics.Glapple.Hooks.UseRunner (useChildRunner)
-import Graphics.Glapple.Hooks.UseTransform (useGlobalTranslate, useTranslateNow)
-import Graphics.Glapple.UseMouseState (useMouseState)
+import Graphics.Glapple.Hooks.UseState (useState)
+import Graphics.Glapple.Hooks.UseUpdate (useUpdate)
 
-startPoint ::
-  { x :: Number
-  , y :: Number
-  }
-startPoint = { x: 10.0, y: 10.0 }
+startPoint :: Complex
+startPoint = complex 10.0 10.0
 
 -- | 球を投げる場所
 root :: {} -> Component Unit Unit
 root _ = do
-  useTranslateNow startPoint --原点に位置を設定
+  appleRunner <- useChildRunner thrownApple
+  getIsDestroy /\ setIsDestroy <- useState false
 
-  getMousePos <- useMouseState
-  getGlobalTranslate <- useGlobalTranslate
+  liftEffect $ appleRunner.run
+    { initTranslate: complex 250.0 250.0
+    , initVelocity: complex 100.0 100.0
+    , onDestroy: setIsDestroy true
+    }
 
-  useRenderer 0.0 do
-    { x: msX, y: msY } <- getMousePos --マウスの位置を取得
-    { x: glX, y: glY } <- getGlobalTranslate --グローバル座標を取得
-    pure $ line [ 0.0 /\ 0.0, (msX - glX) /\ (msY - glY) ]
+  useUpdate \_ -> do
+    isDestroy <- getIsDestroy
+    when isDestroy $ appleRunner.run
+      { initTranslate: complex 250.0 250.0
+      , initVelocity: complex 100.0 100.0
+      , onDestroy: setIsDestroy true
+      }
+    setIsDestroy false
 
-  runApple /\ _ <- useChildRunner thrownApple
+-- prevent -- 操作不能にする
 
-  useKeyEvent case _ of
-    KeyDown (Mouse Left) -> do
-      { x: msX, y: msY } <- getMousePos --マウスの位置を取得
-      { x: glX, y: glY } <- getGlobalTranslate --グローバル座標を取得
-      runApple { x: msX - glX, y: msY - glY }
-    _ -> pure unit
+prevent :: forall t57. Component t57 Unit
+prevent = do
+  _ <- useHover (-infinity) $ ColliderRect $ complex 500.0 500.0
+  pure unit

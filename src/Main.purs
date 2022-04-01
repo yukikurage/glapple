@@ -2,12 +2,13 @@ module Main where
 
 import Prelude
 
+import Components.ColliderTest (colliderTest)
 import Components.Root (root)
 import Data.Maybe (maybe)
 import Effect (Effect)
 import Effect.Exception (throw)
 import Graphics.Canvas (getCanvasElementById)
-import Graphics.Glapple.Data.Component (Component)
+import Graphics.Glapple.Data.Complex (complex)
 import Graphics.Glapple.Runner (runGame)
 import Sprites (sprites)
 
@@ -21,6 +22,7 @@ main = do
     , width: 500.0
     , fps: 60.0
     , sprites
-    , initMousePosition: { x: 0.0, y: 0.0 }
+    , initMousePosition: complex 0.0 0.0
     }
-    root {}
+    colliderTest
+    {}

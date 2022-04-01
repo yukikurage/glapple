@@ -12,13 +12,16 @@ to generate this file without the comments in this block.
 -}
 { name = "my-project"
 , dependencies =
-  [ "canvas"
+  [ "arrays"
+  , "canvas"
   , "console"
+  , "debug"
   , "effect"
   , "exceptions"
   , "glapple"
   , "math"
   , "maybe"
+  , "numbers"
   , "prelude"
   , "psci-support"
   , "random"
