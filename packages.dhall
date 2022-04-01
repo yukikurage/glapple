@@ -101,38 +101,38 @@ in  upstream
 let upstream =
       https://github.com/purescript/package-sets/releases/download/psc-0.14.5-20211111/packages.dhall sha256:7ed6350fe897a93926d16298e37d2324aabbe5eca99810204719dc3632fb555f
 in  upstream
-  with glapple = ./.spago/glapple/v1.1.0/spago.dhall as Location
-  {-
+  with glapple =
     { dependencies =
-        [ "aff"
-        , "arrays"
-        , "canvas"
-        , "colors"
-        , "console"
-        , "datetime"
-        , "effect"
-        , "either"
-        , "foldable-traversable"
-        , "integers"
-        , "math"
-        , "maybe"
-        , "now"
-        , "ordered-collections"
-        , "prelude"
-        , "psci-support"
-        , "refs"
-        , "safely"
-        , "tailrec"
-        , "transformers"
-        , "tuples"
-        , "unsafe-coerce"
-        , "web-events"
-        , "web-html"
-        , "web-uievents"
-        ]
+      [ "aff"
+      , "arrays"
+      , "canvas"
+      , "colors"
+      , "console"
+      , "datetime"
+      , "effect"
+      , "either"
+      , "foldable-traversable"
+      , "integers"
+      , "js-date"
+      , "math"
+      , "maybe"
+      , "numbers"
+      , "ordered-collections"
+      , "prelude"
+      , "random"
+      , "refs"
+      , "safely"
+      , "tailrec"
+      , "transformers"
+      , "tuples"
+      , "unsafe-coerce"
+      , "web-dom"
+      , "web-events"
+      , "web-html"
+      , "web-uievents"
+      ]
     , repo =
         "https://github.com/yukikurage/purescript-glapple"
     , version =
-        "v1.0.2"
+        "v2.0.2"
     }
--}
