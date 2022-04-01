@@ -24,5 +24,5 @@ main = do
     , sprites
     , initMousePosition: complex 0.0 0.0
     }
-    colliderTest
+    root
     {}

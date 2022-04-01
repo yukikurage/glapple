@@ -16,7 +16,7 @@ jobs:
     - name: Install NPM packages
       run: npm ci
     - name: Build website
-      run: npm run deploy
+      run: npm run bundle
     - name: delete index.js from git .ignore
       run: sed -i '/index.js/d' .gitignore
     - name: Deploy website
