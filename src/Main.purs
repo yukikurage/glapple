@@ -2,7 +2,6 @@ module Main where
 
 import Prelude
 
-import Components.ColliderTest (colliderTest)
 import Components.Root (root)
 import Data.Maybe (maybe)
 import Effect (Effect)
