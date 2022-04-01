@@ -2197,6 +2197,38 @@ var PS = {};
       };
   };
 
+  exports.setTextAlignImpl = function(ctx) {
+      return function(textAlign) {
+          return function() {
+              ctx.textAlign = textAlign;
+          }
+      }
+  };
+
+  exports.fillText = function(ctx) {
+      return function(text) {
+          return function(x) {
+              return function(y) {
+                  return function() {
+                      ctx.fillText(text, x, y);
+                  };
+              };
+          };
+      };
+  };
+
+  exports.strokeText = function(ctx) {
+      return function(text) {
+          return function(x) {
+              return function(y) {
+                  return function() {
+                      ctx.strokeText(text, x, y);
+                  };
+              };
+          };
+      };
+  };
+
   exports.save = function(ctx) {
       return function() {
           ctx.save();
@@ -2280,6 +2312,41 @@ var PS = {};
   var exports = $PS["Graphics.Canvas"];
   var $foreign = $PS["Graphics.Canvas"];
   var Data_Maybe = $PS["Data.Maybe"];
+  var AlignLeft = (function () {
+      function AlignLeft() {
+
+      };
+      AlignLeft.value = new AlignLeft();
+      return AlignLeft;
+  })();
+  var AlignRight = (function () {
+      function AlignRight() {
+
+      };
+      AlignRight.value = new AlignRight();
+      return AlignRight;
+  })();
+  var AlignCenter = (function () {
+      function AlignCenter() {
+
+      };
+      AlignCenter.value = new AlignCenter();
+      return AlignCenter;
+  })();
+  var AlignStart = (function () {
+      function AlignStart() {
+
+      };
+      AlignStart.value = new AlignStart();
+      return AlignStart;
+  })();
+  var AlignEnd = (function () {
+      function AlignEnd() {
+
+      };
+      AlignEnd.value = new AlignEnd();
+      return AlignEnd;
+  })();
   var Repeat = (function () {
       function Repeat() {
 
@@ -2497,6 +2564,29 @@ var PS = {};
           });
       };
   };
+  var setTextAlign = function (ctx) {
+      return function (textalign) {
+          var toString = function (v) {
+              if (v instanceof AlignLeft) {
+                  return "left";
+              };
+              if (v instanceof AlignRight) {
+                  return "right";
+              };
+              if (v instanceof AlignCenter) {
+                  return "center";
+              };
+              if (v instanceof AlignStart) {
+                  return "start";
+              };
+              if (v instanceof AlignEnd) {
+                  return "end";
+              };
+              throw new Error("Failed pattern match at Graphics.Canvas (line 527, column 5 - line 527, column 32): " + [ v.constructor.name ]);
+          };
+          return $foreign.setTextAlignImpl(ctx)(toString(textalign));
+      };
+  };
   var setGlobalCompositeOperation = function (ctx) {
       return function (composite) {
           var toString = function (v) {
@@ -2609,9 +2699,11 @@ var PS = {};
       };
   };
   exports["SourceOver"] = SourceOver;
+  exports["AlignStart"] = AlignStart;
   exports["Repeat"] = Repeat;
   exports["getCanvasElementById"] = getCanvasElementById;
   exports["setGlobalCompositeOperation"] = setGlobalCompositeOperation;
+  exports["setTextAlign"] = setTextAlign;
   exports["tryLoadImage"] = tryLoadImage;
   exports["createPattern"] = createPattern;
   exports["getContext2D"] = $foreign.getContext2D;
@@ -2632,6 +2724,8 @@ var PS = {};
   exports["scale"] = $foreign.scale;
   exports["translate"] = $foreign.translate;
   exports["transform"] = $foreign.transform;
+  exports["fillText"] = $foreign.fillText;
+  exports["strokeText"] = $foreign.strokeText;
   exports["save"] = $foreign.save;
   exports["restore"] = $foreign.restore;
   exports["canvasElementToImageSource"] = $foreign.canvasElementToImageSource;
@@ -2912,6 +3006,28 @@ var PS = {};
           };
       };
   };
+  var text = function (style) {
+      return function (str) {
+          return function (ctx) {
+              return function (v) {
+                  return saveAndRestore(Effect_Class.monadEffectEffect)(ctx)(Effect_Class.liftEffect(Effect_Class.monadEffectEffect)(function __do() {
+                      Graphics_Canvas.save(ctx)();
+                      Graphics_Canvas.beginPath(ctx)();
+                      (function () {
+                          if (style instanceof Fill) {
+                              return Graphics_Canvas.fillText(ctx)(str)(0.0)(0.0)();
+                          };
+                          if (style instanceof Stroke) {
+                              return Graphics_Canvas.strokeText(ctx)(str)(0.0)(0.0)();
+                          };
+                          throw new Error("Failed pattern match at Graphics.Glapple.Data.Picture (line 369, column 3 - line 373, column 35): " + [ style.constructor.name ]);
+                      })();
+                      return Graphics_Canvas.restore(ctx)();
+                  }));
+              };
+          };
+      };
+  };
   var runShape = function (ctx) {
       return function (v) {
           if (v instanceof Fill) {
@@ -3003,6 +3119,9 @@ var PS = {};
           scaleX: Graphics_Glapple_Data_Complex.real(cmp),
           scaleY: Graphics_Glapple_Data_Complex.image(cmp)
       }));
+  };
+  var textAlign = function (a) {
+      return operate(Data_Function.flip(Graphics_Canvas.setTextAlign)(a));
   };
   var transform = function (t) {
       return operate(Data_Function.flip(Graphics_Canvas.transform)(Graphics_Glapple_Data_Transform.toCanvasTransform(t)));
@@ -3128,6 +3247,8 @@ var PS = {};
   exports["scale"] = scale;
   exports["setOrigin"] = setOrigin;
   exports["sprite"] = sprite;
+  exports["text"] = text;
+  exports["textAlign"] = textAlign;
   exports["transform"] = transform;
   exports["translate"] = translate;
   exports["semigroupPicture"] = semigroupPicture;
@@ -7070,13 +7191,38 @@ var PS = {};
 (function($PS) {
   // Generated by purs version 0.14.7
   "use strict";
+  $PS["Components.UseFps"] = $PS["Components.UseFps"] || {};
+  var exports = $PS["Components.UseFps"];
+  var Control_Applicative = $PS["Control.Applicative"];
+  var Control_Bind = $PS["Control.Bind"];
+  var Effect = $PS["Effect"];
+  var Graphics_Glapple_Data_Hooks = $PS["Graphics.Glapple.Data.Hooks"];
+  var Graphics_Glapple_Hooks_UseState = $PS["Graphics.Glapple.Hooks.UseState"];
+  var Graphics_Glapple_Hooks_UseUpdate = $PS["Graphics.Glapple.Hooks.UseUpdate"];                
+  var useFps = Control_Bind.bind(Graphics_Glapple_Data_Hooks.bindHooks)(Graphics_Glapple_Hooks_UseState.useState(0.0))(function (v) {
+      return Control_Bind.discard(Control_Bind.discardUnit)(Graphics_Glapple_Data_Hooks.bindHooks)(Graphics_Glapple_Hooks_UseUpdate.useUpdate(function (v1) {
+          return function __do() {
+              var fps = v.value0();
+              return Control_Applicative.when(Effect.applicativeEffect)(v1.deltaTime !== 0.0)(v.value1((9.0 * fps + 1.0 / v1.deltaTime) / 10.0))();
+          };
+      }))(function () {
+          return Control_Applicative.pure(Graphics_Glapple_Data_Hooks.applicativeHooks)(v.value0);
+      });
+  });
+  exports["useFps"] = useFps;
+})(PS);
+(function($PS) {
+  // Generated by purs version 0.14.7
+  "use strict";
   $PS["Components.Root"] = $PS["Components.Root"] || {};
   var exports = $PS["Components.Root"];
   var Color_Scheme_Clrs = $PS["Color.Scheme.Clrs"];
   var Components_ColliderTest = $PS["Components.ColliderTest"];
   var Components_ThrownApple = $PS["Components.ThrownApple"];
+  var Components_UseFps = $PS["Components.UseFps"];
   var Control_Applicative = $PS["Control.Applicative"];
   var Control_Bind = $PS["Control.Bind"];
+  var Data_Show = $PS["Data.Show"];
   var Data_Tuple = $PS["Data.Tuple"];
   var Data_Unit = $PS["Data.Unit"];
   var Effect = $PS["Effect"];
@@ -7100,27 +7246,37 @@ var PS = {};
       sprite: Data_Unit.unit,
       repeat: Graphics_Canvas.Repeat.value
   }))(Graphics_Glapple_Data_Picture.polygon(Graphics_Glapple_Data_Picture.Fill.value)([ Graphics_Glapple_Data_Complex.complex(0.0)(0.0), Graphics_Glapple_Data_Complex.complex(120.0)(80.0), Graphics_Glapple_Data_Complex.complex(30.0)(90.0) ]));
+  var fpsText = function (str) {
+      return Graphics_Glapple_Data_Picture.translate(Graphics_Glapple_Data_Complex.complex(100.0)(100.0))(Graphics_Glapple_Data_Picture.textAlign(Graphics_Canvas.AlignStart.value)(Graphics_Glapple_Data_Picture.scale(Graphics_Glapple_Data_Complex.complex(2.0)(2.0))(Graphics_Glapple_Data_Picture.text(Graphics_Glapple_Data_Picture.Fill.value)(str))));
+  };
   var root = function (v) {
       return Control_Bind.bind(Graphics_Glapple_Data_Hooks.bindHooks)(Graphics_Glapple_Hooks_UseRunner.useChildRunner(Components_ThrownApple.thrownApple(Control_Bind.discardUnit)))(function (appleRunner) {
           return Control_Bind.bind(Graphics_Glapple_Data_Hooks.bindHooks)(Graphics_Glapple_Hooks_UseState.useState(false))(function (v1) {
               return Control_Bind.discard(Control_Bind.discardUnit)(Graphics_Glapple_Data_Hooks.bindHooks)(Graphics_Glapple_Hooks_UseRunner.useRunnerNow(Components_ColliderTest.colliderTest)({}))(function () {
                   return Control_Bind.discard(Control_Bind.discardUnit)(Graphics_Glapple_Data_Hooks.bindHooks)(Graphics_Glapple_Hooks_UseRenderer.useRenderer(0.0)(Control_Applicative.pure(Effect.applicativeEffect)(polygonTest)))(function () {
                       return Control_Bind.discard(Control_Bind.discardUnit)(Graphics_Glapple_Data_Hooks.bindHooks)(Graphics_Glapple_Hooks_UseRenderer.useRenderer(-1.0)(Control_Applicative.pure(Effect.applicativeEffect)(polygonTest2)))(function () {
-                          return Control_Bind.discard(Control_Bind.discardUnit)(Graphics_Glapple_Data_Hooks.bindHooks)(Effect_Class.liftEffect(Graphics_Glapple_Data_Hooks.monadEffectHooks)(appleRunner.run({
-                              initTranslate: Graphics_Glapple_Data_Complex.complex(250.0)(250.0),
-                              initVelocity: Graphics_Glapple_Data_Complex.complex(100.0)(100.0),
-                              onDestroy: v1.value1(true)
-                          })))(function () {
-                              return Graphics_Glapple_Hooks_UseUpdate.useUpdate(function (v2) {
-                                  return function __do() {
-                                      var isDestroy = v1.value0();
-                                      Control_Applicative.when(Effect.applicativeEffect)(isDestroy)(appleRunner.run({
-                                          initTranslate: Graphics_Glapple_Data_Complex.complex(250.0)(250.0),
-                                          initVelocity: Graphics_Glapple_Data_Complex.complex(100.0)(100.0),
-                                          onDestroy: v1.value1(true)
-                                      }))();
-                                      return v1.value1(false)();
-                                  };
+                          return Control_Bind.bind(Graphics_Glapple_Data_Hooks.bindHooks)(Components_UseFps.useFps)(function (getFps) {
+                              return Control_Bind.discard(Control_Bind.discardUnit)(Graphics_Glapple_Data_Hooks.bindHooks)(Graphics_Glapple_Hooks_UseRenderer.useRenderer(-1.0)(function __do() {
+                                  var fps = getFps();
+                                  return fpsText("FPS: " + Data_Show.show(Data_Show.showNumber)(fps));
+                              }))(function () {
+                                  return Control_Bind.discard(Control_Bind.discardUnit)(Graphics_Glapple_Data_Hooks.bindHooks)(Effect_Class.liftEffect(Graphics_Glapple_Data_Hooks.monadEffectHooks)(appleRunner.run({
+                                      initTranslate: Graphics_Glapple_Data_Complex.complex(250.0)(250.0),
+                                      initVelocity: Graphics_Glapple_Data_Complex.complex(100.0)(100.0),
+                                      onDestroy: v1.value1(true)
+                                  })))(function () {
+                                      return Graphics_Glapple_Hooks_UseUpdate.useUpdate(function (v2) {
+                                          return function __do() {
+                                              var isDestroy = v1.value0();
+                                              Control_Applicative.when(Effect.applicativeEffect)(isDestroy)(appleRunner.run({
+                                                  initTranslate: Graphics_Glapple_Data_Complex.complex(250.0)(250.0),
+                                                  initVelocity: Graphics_Glapple_Data_Complex.complex(100.0)(100.0),
+                                                  onDestroy: v1.value1(true)
+                                              }))();
+                                              return v1.value1(false)();
+                                          };
+                                      });
+                                  });
                               });
                           });
                       });
