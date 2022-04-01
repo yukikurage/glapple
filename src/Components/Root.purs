@@ -5,15 +5,16 @@ import Prelude
 import Color.Scheme.Clrs (purple, red)
 import Components.ColliderTest (colliderTest)
 import Components.ThrownApple (thrownApple)
+import Components.UseFps (useFps)
 import Data.Number (infinity)
 import Data.Tuple.Nested ((/\))
 import Effect.Class (liftEffect)
-import Graphics.Canvas (PatternRepeat(..))
+import Graphics.Canvas (PatternRepeat(..), TextAlign(..))
 import Graphics.Glapple.Data.Collider (Collider(..))
 import Graphics.Glapple.Data.Complex (Complex, complex)
 import Graphics.Glapple.Data.Component (Component(..))
 import Graphics.Glapple.Data.Hooks (Hooks)
-import Graphics.Glapple.Data.Picture (DrawStyle(..), Picture, Shape(..), paint, polygon, translate)
+import Graphics.Glapple.Data.Picture (DrawStyle(..), Picture, Shape(..), paint, polygon, scale, text, textAlign, translate)
 import Graphics.Glapple.Hooks.UseHover (useHover)
 import Graphics.Glapple.Hooks.UseRenderer (useRenderer)
 import Graphics.Glapple.Hooks.UseRunner (useChildRunner, useRunnerNow)
@@ -34,6 +35,12 @@ root = Component \_ -> do
   useRenderer 0.0 $ pure polygonTest
 
   useRenderer (-1.0) $ pure polygonTest2
+
+  getFps <- useFps
+
+  useRenderer (-1.0) do
+    fps <- getFps
+    pure $ fpsText $ "FPS: " <> show fps
 
   liftEffect $ appleRunner.run
     { initTranslate: complex 250.0 250.0
@@ -75,3 +82,8 @@ polygonTest2 =
             }
         )
     # translate (complex 100.0 100.0)
+
+fpsText :: forall sprite. String -> Picture sprite
+fpsText str = text Fill str # scale (complex 2.0 2.0) # textAlign AlignStart #
+  translate
+    (complex 100.0 100.0)
